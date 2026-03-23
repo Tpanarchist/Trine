@@ -119,7 +119,8 @@ def shift_right(value: int) -> int:
     """Divide by 3, truncating toward zero."""
     if value == 0:
         return 0
-    return int(value / 3) if value > 0 else -int(-value / 3)
+    sign = 1 if value > 0 else -1
+    return (abs(value) // 3) * sign
 
 
 def sign(value: int) -> int:

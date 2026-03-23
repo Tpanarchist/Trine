@@ -173,7 +173,7 @@ class TernaryMachineModel:
         try:
             if self.leaf_state != "reject":
                 self.finish_reject()
-        except (Exception,):
+        except Exception:
             self.state = "reject"
 
     def set_manual_halt_reason(self, event: Any = None) -> None:

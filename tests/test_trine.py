@@ -152,6 +152,13 @@ class TestComposite:
     def test_shift_right(self, value, expected):
         assert shift_right(value) == expected
 
+    @pytest.mark.parametrize("value,expected", [
+        (10**30 + 2, (10**30 + 2) // 3),
+        (-(10**30 + 2), -((10**30 + 2) // 3)),
+    ])
+    def test_shift_right_large_exact(self, value, expected):
+        assert shift_right(value) == expected
+
 
 # ═══════════════════════════════════════════════════════════════
 # Algebraic proofs

@@ -85,8 +85,6 @@ class MiniFSM:
 
     def _bind_triggers(self) -> None:
         seen: set = set()
-        for t_list in self._dispatch.values():
-            pass  # dispatch keys are the triggers
         for trigger in self._dispatch:
             if trigger not in seen:
                 seen.add(trigger)

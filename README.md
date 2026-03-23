@@ -31,6 +31,8 @@ vm = TernaryVM(prog).run()
 # → 120 (++++0)
 ```
 
+See [`examples/factorial_vm.py`](examples/factorial_vm.py) for a runnable VM example.
+
 ## Architecture
 
 ```
@@ -88,16 +90,22 @@ The test suite verifies 161 cases including these algebraic properties:
 # Install
 git clone https://github.com/digital-degenerates/trine.git
 cd trine
-pip install -e ".[test]"
+python3.12 -m venv .venv312
+.venv312/bin/python -m pip install -e ".[test]"
 
 # Run tests (161 cases, <1 second)
-pytest
+.venv312/bin/pytest
 
 # Run demo
-python -m trine.cli
+.venv312/bin/python -m trine
+
+# Run the example program
+.venv312/bin/python examples/factorial_vm.py
 ```
 
 Requires Python 3.10+. No external dependencies for the core library.
+
+On Windows, replace `python3.12` with `py -3.12` and use `.venv312\\Scripts\\python` / `.venv312\\Scripts\\pytest`.
 
 ## Project status
 
