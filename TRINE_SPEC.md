@@ -55,14 +55,20 @@ executed by Python on conventional binary hardware.
 Trine is layered. Each layer depends only on the layer below it.
 
 ```
-Programs    -> factorial, fibonacci, loops, branching demos
-VM          -> stack, PC, opcodes, BR3
-ALU         -> add, sub, mul, neg, abs, shifts, sign
-Operations  -> injectable descriptors
-FSM         -> MiniFSM tick cycle
-Model       -> tape, head, carry, trace
-Primitives  -> Trit, Tape, formatting, conversion
+Programs          -> factorial, fibonacci, loops, branching demos
+VM                -> stack, PC, opcodes, BR3
+Primitive ALU     -> increment, decrement, negate, add
+Composite helpers -> abs, sub, mul, shifts, sign
+Operations        -> injectable descriptors
+FSM               -> MiniFSM tick cycle
+Model             -> tape, head, carry, trace
+Primitives        -> Trit, Tape, formatting, conversion
 ```
+
+Only `increment`, `decrement`, `negate`, and `add` currently execute as
+primitive tape/FSM operations. `abs`, `sub`, `mul`, `shift_left`,
+`shift_right`, and `sign` are composite helpers built either from those
+primitives or from direct host-side logic.
 
 ### Core Principles
 
@@ -86,14 +92,14 @@ structural property of the codebase, not a speculative future claim.
 - Balanced ternary conversion with round-trip verification
 - `MiniFSM` as the control substrate
 - Injectable operation descriptors
-- Unary operations: increment, decrement, negate
-- Composite operations: abs, sign, shift-left, shift-right
-- Binary addition with carry and second tape
-- Multiplication and subtraction as compositions over the ALU
-- `TernaryVM` with 20 opcodes including `BR3`
+- Primitive unary operations: increment, decrement, negate
+- Primitive binary operation: addition with carry and second tape
+- Composite helpers: abs, sign, shift-left, shift-right, subtraction, multiplication
+- `TernaryVM` with 22 opcodes including `BR3`
 - `python -m trine` entrypoint and example VM program
 - GitHub Actions CI running tests and a module smoke test
-- 163 pytest cases covering primitives, operations, algebraic properties, and VM programs
+- 167 pytest cases covering primitives, operations, algebraic properties, and VM programs
+- VM metrics: `alu_ticks` for primitive machine ticks and `composite_ops` for host-side/composed VM instructions
 
 ### What Is Proven
 
@@ -113,9 +119,18 @@ structural property of the codebase, not a speculative future claim.
 
 - Execution is binary hardware simulating ternary semantics through Python.
 - Correctness proofs do not imply speed, efficiency, or product readiness.
+- Several VM instructions are composite host-side helpers rather than single primitive tape/FSM operations.
 - The VM is stack-only and lacks memory-addressed load/store today.
 - The ISA is still a Python object interface rather than a ternary encoding.
 - The current control system relies on Python constructs that would need explicit HDL translation.
+
+---
+
+## Near-Term Priorities
+
+1. Memory-addressed load/store so the VM is a stronger machine model instead of only a stack demonstrator.
+2. Comparison returning a trit (`-1`, `0`, `+1`) so control flow and future load/store code can branch without ad hoc host comparisons.
+3. A small ISA and assembly-text specification so later assembler, compiler, and HDL work targets stable semantics instead of inferred behavior.
 
 ---
 
@@ -129,7 +144,7 @@ actually validating the claims they are meant to test.
 This milestone established the software reference stack.
 
 - [x] Python package (`src/trine/`)
-- [x] 163 pytest cases
+- [x] 167 pytest cases
 - [x] Separated core library from CLI/demo code
 - [x] README and project specification
 - [x] `python -m trine` entrypoint
@@ -140,13 +155,14 @@ This milestone established the software reference stack.
 
 **Goal**: Improve the software model so it is a stronger specification and test bed.
 
+- [ ] Memory-addressed load/store
 - [ ] Comparison operation (returns trit: less/equal/greater)
+- [ ] Small ISA specification document
+- [ ] Minimal assembly syntax specification
 - [ ] Integer division
 - [ ] Modular arithmetic
 - [ ] Ternary MIN / MAX / consensus operations
 - [ ] `ROT` instruction
-- [ ] Memory-addressed load/store
-- [ ] Formal ISA specification document
 - [ ] Benchmarks focused on operation counts and ALU ticks, not marketing claims
 
 ### M2: Compiler + Assembler

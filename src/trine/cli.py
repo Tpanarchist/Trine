@@ -100,7 +100,10 @@ def demo() -> None:
     vm = TernaryVM(prog).run()
     for line in vm.output:
         print(f"    -> {line}")
-    print(f"  vm_steps={vm.step_count}  alu_ticks={vm.alu_ticks}")
+    print(
+        f"  vm_steps={vm.step_count}  alu_ticks={vm.alu_ticks}  "
+        f"composite_ops={vm.composite_ops}"
+    )
 
     # Fibonacci
     print("\n  -- Fibonacci: first 8 terms --")
@@ -119,6 +122,10 @@ def demo() -> None:
         print(f"    -> {line}")
     actual = [int(o.split()[0]) for o in vm_fib.output]
     print(f"  {'OK' if actual == [0, 1, 1, 2, 3, 5, 8, 13] else 'X '} sequence correct")
+    print(
+        f"  vm_steps={vm_fib.step_count}  alu_ticks={vm_fib.alu_ticks}  "
+        f"composite_ops={vm_fib.composite_ops}"
+    )
 
     # Powers of 2
     print("\n  -- Powers of 2: 2^0..2^7 --")
@@ -137,6 +144,10 @@ def demo() -> None:
         print(f"    -> {line}")
     actual = [int(o.split()[0]) for o in vm_pow.output]
     print(f"  {'OK' if actual == [2**i for i in range(8)] else 'X '} sequence correct")
+    print(
+        f"  vm_steps={vm_pow.step_count}  alu_ticks={vm_pow.alu_ticks}  "
+        f"composite_ops={vm_pow.composite_ops}"
+    )
 
 
 def main() -> int:

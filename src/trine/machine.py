@@ -5,7 +5,7 @@ Assembles FSM + Model + Operation into a runnable machine.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from .trit import Trit
 from .tape import Tape
@@ -203,20 +203,43 @@ class TernaryMachine:
 
 # ── Composite operations ──
 
-def ternary_abs(value: int) -> int:
+TickSink = Optional[Callable[[int], None]]
+
+
+def _emit_ticks(tick_sink: TickSink, ticks: int) -> None:
+    if tick_sink is not None and ticks:
+        tick_sink(ticks)
+
+
+def _run_unary_machine(operation: str, value: int) -> Tuple[int, int]:
+    machine = TernaryMachine(operation).load_int(value).run()
+    return machine.to_int(), machine.model.step_count
+
+
+def _run_binary_machine(operation: str, a: int, b: int) -> Tuple[int, int]:
+    machine = TernaryMachine(operation).load_two(a, b).run()
+    return machine.to_int(), machine.model.step_count
+
+
+def ternary_abs(value: int, *, tick_sink: TickSink = None) -> int:
     """Absolute value: negate if negative, identity otherwise."""
     if value < 0:
-        return TernaryMachine("negate").load_int(value).run().to_int()
+        result, ticks = _run_unary_machine("negate", value)
+        _emit_ticks(tick_sink, ticks)
+        return result
     return value
 
 
-def ternary_sub(a: int, b: int) -> int:
+def ternary_sub(a: int, b: int, *, tick_sink: TickSink = None) -> int:
     """Subtraction: a - b = a + negate(b)."""
-    neg_b = TernaryMachine("negate").load_int(b).run().to_int()
-    return TernaryMachine("add").load_two(a, neg_b).run().to_int()
+    neg_b, neg_ticks = _run_unary_machine("negate", b)
+    _emit_ticks(tick_sink, neg_ticks)
+    result, add_ticks = _run_binary_machine("add", a, neg_b)
+    _emit_ticks(tick_sink, add_ticks)
+    return result
 
 
-def ternary_mul(a: int, b: int) -> int:
+def ternary_mul(a: int, b: int, *, tick_sink: TickSink = None) -> int:
     """Multiplication via shift-and-add with trit dispatch."""
     if b == 0:
         return 0
@@ -225,9 +248,12 @@ def ternary_mul(a: int, b: int) -> int:
     b_trits = list(reversed(int_to_trits(b)))
     for trit in b_trits:
         if trit is Trit.POS:
-            result = TernaryMachine("add").load_two(result, multiplicand).run().to_int()
+            result, ticks = _run_binary_machine("add", result, multiplicand)
+            _emit_ticks(tick_sink, ticks)
         elif trit is Trit.NEG:
-            neg_m = TernaryMachine("negate").load_int(multiplicand).run().to_int()
-            result = TernaryMachine("add").load_two(result, neg_m).run().to_int()
+            neg_m, neg_ticks = _run_unary_machine("negate", multiplicand)
+            _emit_ticks(tick_sink, neg_ticks)
+            result, add_ticks = _run_binary_machine("add", result, neg_m)
+            _emit_ticks(tick_sink, add_ticks)
         multiplicand = shift_left(multiplicand)
     return result

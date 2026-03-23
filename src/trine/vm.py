@@ -1,8 +1,10 @@
 """TernaryVM — stored-program stack machine on the ALU substrate.
 
 Harvard architecture: separate program (instruction list) and data (stack).
-All arithmetic dispatches to TernaryMachine. The VM never does math directly.
-Three-way branching (BR3) is a primitive instruction.
+Primitive ALU work dispatches to TernaryMachine. Composite VM instructions
+either compose primitive machine runs or use direct host-side helpers and are
+tracked separately from primitive ALU ticks. Three-way branching (BR3) is a
+primitive instruction.
 """
 
 from __future__ import annotations
@@ -60,7 +62,12 @@ class VMError(Exception):
 
 
 class TernaryVM:
-    """Stack-based ternary VM. All arithmetic via ALU dispatch."""
+    """Stack-based ternary VM.
+
+    `alu_ticks` counts MiniFSM/tape steps executed by primitive TernaryMachine
+    runs. `composite_ops` counts VM instructions implemented as host-side
+    helpers or compositions over those primitive runs.
+    """
 
     def __init__(self, program: List[Instruction], max_steps: int = 10000) -> None:
         self.program = program
@@ -71,6 +78,7 @@ class TernaryVM:
         self.output: List[str] = []
         self.step_count: int = 0
         self.alu_ticks: int = 0
+        self.composite_ops: int = 0
         self.max_steps = max_steps
 
     def reset(self) -> TernaryVM:
@@ -81,7 +89,11 @@ class TernaryVM:
         self.output = []
         self.step_count = 0
         self.alu_ticks = 0
+        self.composite_ops = 0
         return self
+
+    def _record_alu_ticks(self, ticks: int) -> None:
+        self.alu_ticks += ticks
 
     def _push(self, value: int) -> None:
         self.stack.append(value)
@@ -98,7 +110,7 @@ class TernaryVM:
 
     def _alu_unary(self, op_name: str, value: int) -> int:
         if op_name == "abs":
-            return ternary_abs(value)
+            return ternary_abs(value, tick_sink=self._record_alu_ticks)
         if op_name == "sign":
             return sign(value)
         if op_name == "shift_left":
@@ -106,7 +118,7 @@ class TernaryVM:
         if op_name == "shift_right":
             return shift_right(value)
         m = TernaryMachine(op_name).load_int(value).run(max_steps=500)
-        self.alu_ticks += m.model.step_count
+        self._record_alu_ticks(m.model.step_count)
         if m.leaf_state == "reject":
             raise VMError(f"ALU rejected: {op_name}({value}) — {m.halt_reason}")
         return m.to_int()
@@ -116,7 +128,7 @@ class TernaryVM:
         digits = max(len(str(abs(a))) if a else 1, len(str(abs(b))) if b else 1)
         limit = max(500, digits * 5)
         m = TernaryMachine("add").load_two(a, b).run(max_steps=limit)
-        self.alu_ticks += m.model.step_count
+        self._record_alu_ticks(m.model.step_count)
         if m.leaf_state == "reject":
             raise VMError(f"ALU rejected: add({a}, {b}) — {m.halt_reason}")
         return m.to_int()
@@ -162,12 +174,16 @@ class TernaryVM:
         elif op == Op.NEG:
             self._push(self._alu_unary("negate", self._pop()))
         elif op == Op.ABS:
+            self.composite_ops += 1
             self._push(self._alu_unary("abs", self._pop()))
         elif op == Op.SHL:
+            self.composite_ops += 1
             self._push(self._alu_unary("shift_left", self._pop()))
         elif op == Op.SHR:
+            self.composite_ops += 1
             self._push(self._alu_unary("shift_right", self._pop()))
         elif op == Op.SGN:
+            self.composite_ops += 1
             self._push(self._alu_unary("sign", self._pop()))
 
         # Binary ALU
@@ -175,12 +191,13 @@ class TernaryVM:
             b, a = self._pop(), self._pop()
             self._push(self._alu_add(a, b))
         elif op == Op.SUB:
+            self.composite_ops += 1
             b, a = self._pop(), self._pop()
-            neg_b = self._alu_unary("negate", b)
-            self._push(self._alu_add(a, neg_b))
+            self._push(ternary_sub(a, b, tick_sink=self._record_alu_ticks))
         elif op == Op.MUL:
+            self.composite_ops += 1
             b, a = self._pop(), self._pop()
-            self._push(ternary_mul(a, b))
+            self._push(ternary_mul(a, b, tick_sink=self._record_alu_ticks))
 
         # Control flow
         elif op == Op.JMP:

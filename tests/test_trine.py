@@ -121,6 +121,18 @@ class TestAddition:
         assert TernaryMachine("add").load_two(a, b).run().to_int() == expected
 
 
+class TestMachineReuse:
+    def test_add_machine_reuse_clears_second_tape_for_load_int(self):
+        machine = TernaryMachine("add")
+        assert machine.load_two(1, 2).run().to_int() == 3
+        assert machine.load_int(5).run().to_int() == 5
+
+    def test_add_machine_reuse_clears_second_tape_for_load_trits(self):
+        machine = TernaryMachine("add")
+        assert machine.load_two(1, 2).run().to_int() == 3
+        assert machine.load_trits(int_to_trits(5)).run().to_int() == 5
+
+
 class TestComposite:
     @pytest.mark.parametrize("value,expected", [
         (-1, 1), (-5, 5), (-13, 13), (-40, 40), (0, 0), (13, 13),
@@ -337,3 +349,23 @@ class TestVM:
         ]
         vm = TernaryVM(prog).run()
         assert int(vm.output[0].split()[0]) == 42
+
+    def test_mul_tracks_composite_ops_and_primitive_ticks(self):
+        prog = [
+            Instruction(Op.PUSH, 2), Instruction(Op.PUSH, 3),
+            Instruction(Op.MUL), Instruction(Op.PRINT), Instruction(Op.HALT),
+        ]
+        vm = TernaryVM(prog).run()
+        assert int(vm.output[0].split()[0]) == 6
+        assert vm.composite_ops == 1
+        assert vm.alu_ticks > 0
+
+    def test_shift_tracks_composite_ops_without_primitive_ticks(self):
+        prog = [
+            Instruction(Op.PUSH, 13),
+            Instruction(Op.SHL), Instruction(Op.PRINT), Instruction(Op.HALT),
+        ]
+        vm = TernaryVM(prog).run()
+        assert int(vm.output[0].split()[0]) == 39
+        assert vm.composite_ops == 1
+        assert vm.alu_ticks == 0

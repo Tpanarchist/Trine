@@ -16,6 +16,7 @@ Trine currently demonstrates:
 - Correct balanced ternary primitives and conversions
 - A layered architecture with strict separation between constraints, model, and operations
 - An extensible ALU surface built from injectable operation descriptors
+- A clear split between primitive tape/FSM operations and composite helper operations
 - `BR3` as a primitive ternary branch in the VM
 - Algebraic and program-level correctness checks in an automated test suite
 
@@ -62,18 +63,24 @@ See [`examples/factorial_vm.py`](examples/factorial_vm.py) for a runnable VM exa
 ## Architecture
 
 ```
-Programs    -> factorial, fibonacci, loops, three-way branching
-VM          -> stack machine, 20 opcodes, BR3
-ALU         -> add, sub, mul, inc, dec, neg, abs, shift, sign
-Operations  -> injectable descriptors
-FSM         -> MiniFSM tick cycle
-Model       -> tape, head, carry register, trace
-Primitives  -> Trit, Tape, balanced ternary formatting/conversion
+Programs          -> factorial, fibonacci, loops, three-way branching
+VM                -> stack machine, 22 opcodes, BR3
+Primitive ALU     -> increment, decrement, negate, add
+Composite helpers -> abs, sub, mul, shift, sign
+Operations        -> injectable descriptors
+FSM               -> MiniFSM tick cycle
+Model             -> tape, head, carry register, trace
+Primitives        -> Trit, Tape, balanced ternary formatting/conversion
 ```
 
 Each layer depends only on the one below it. The FSM enforces legal transitions.
 The model performs the computation. Operations change behavior without changing
 the substrate.
+
+In the current codebase, only `increment`, `decrement`, `negate`, and `add`
+execute as primitive tape/FSM operations. `abs`, `sub`, `mul`, `shift_left`,
+`shift_right`, and `sign` are composite helpers built either from those
+primitives or from direct host-side logic.
 
 ## Why Ternary
 
@@ -87,7 +94,7 @@ Python ternary simulator is faster or more useful than binary implementations.
 
 ## Verification
 
-The test suite currently covers 163 cases across:
+The test suite currently covers 167 cases across:
 
 - Trit and tape primitives
 - Balanced ternary conversion
@@ -98,6 +105,10 @@ The test suite currently covers 163 cases across:
 
 The proofs establish semantic correctness of the implemented operations. They do
 not establish hardware efficiency or application-level advantage.
+
+For VM instrumentation, `alu_ticks` counts primitive `TernaryMachine` ticks and
+`composite_ops` counts VM instructions implemented as host-side helpers or
+compositions over primitive machine runs.
 
 GitHub Actions CI runs `pytest -q` and a `python -m trine` smoke test on Python
 3.10, 3.11, and 3.12.
@@ -135,13 +146,14 @@ Current strengths:
 - Clean layered package structure
 - Extensible operation injection model
 - Ternary-native `BR3`
-- 163 passing tests
+- 167 passing tests
 - CI and module entrypoint support
 
 Current limits:
 
 - Execution is still a Python simulation on binary hardware
 - Performance is not competitive with native numeric libraries or hardware
+- Several VM arithmetic instructions are still composite helpers, not single primitive tape/FSM ops
 - The VM is still stack-only and lacks random-access memory
 - The ISA is a Python-level interface, not a hardware-ready ternary encoding
 

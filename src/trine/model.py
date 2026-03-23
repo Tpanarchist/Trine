@@ -75,6 +75,7 @@ class TernaryMachineModel:
         self.trace = []
         self.pending_accept = False
         self.carry = Trit.ZERO
+        self.second_tape = None
 
     # ── Tick cycle callbacks ──
 
