@@ -14,7 +14,18 @@ from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
 from .trit import Trit
 from .formatting import format_trits, int_to_trits
-from .machine import TernaryMachine, ternary_abs, ternary_sub, ternary_cmp, ternary_mul
+from .machine import (
+    TernaryMachine,
+    ternary_abs,
+    ternary_sub,
+    ternary_cmp,
+    ternary_min,
+    ternary_max,
+    ternary_cons,
+    ternary_div,
+    ternary_mod,
+    ternary_mul,
+)
 from .operations import shift_left, shift_right, sign
 
 
@@ -40,6 +51,11 @@ class Op:
     ADD   = "ADD"
     SUB   = "SUB"
     CMP   = "CMP"
+    MIN   = "MIN"
+    MAX   = "MAX"
+    CONS  = "CONS"
+    DIV   = "DIV"
+    MOD   = "MOD"
     MUL   = "MUL"
     # Memory
     LOAD  = "LOAD"
@@ -220,6 +236,32 @@ class TernaryVM:
             self.composite_ops += 1
             b, a = self._pop(), self._pop()
             self._push(ternary_cmp(a, b, tick_sink=self._record_alu_ticks))
+        elif op == Op.MIN:
+            self.composite_ops += 1
+            b, a = self._pop(), self._pop()
+            self._push(ternary_min(a, b, tick_sink=self._record_alu_ticks))
+        elif op == Op.MAX:
+            self.composite_ops += 1
+            b, a = self._pop(), self._pop()
+            self._push(ternary_max(a, b, tick_sink=self._record_alu_ticks))
+        elif op == Op.CONS:
+            self.composite_ops += 1
+            b, a = self._pop(), self._pop()
+            self._push(ternary_cons(a, b, tick_sink=self._record_alu_ticks))
+        elif op == Op.DIV:
+            self.composite_ops += 1
+            b, a = self._pop(), self._pop()
+            try:
+                self._push(ternary_div(a, b, tick_sink=self._record_alu_ticks))
+            except ZeroDivisionError as exc:
+                raise VMError(str(exc)) from exc
+        elif op == Op.MOD:
+            self.composite_ops += 1
+            b, a = self._pop(), self._pop()
+            try:
+                self._push(ternary_mod(a, b, tick_sink=self._record_alu_ticks))
+            except ZeroDivisionError as exc:
+                raise VMError(str(exc)) from exc
         elif op == Op.MUL:
             self.composite_ops += 1
             b, a = self._pop(), self._pop()

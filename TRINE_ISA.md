@@ -12,7 +12,7 @@ It is a software reference, not a ternary hardware encoding.
 - `PRINT` renders integers alongside balanced ternary formatting.
 - Jumps may target raw numeric instruction indexes or labels.
 - Primitive tape/FSM-executed arithmetic is limited to `INC`, `DEC`, `NEG`, and `ADD`.
-- `ABS`, `SUB`, `CMP`, `MUL`, `SHL`, `SHR`, and `SGN` are composite helpers over the primitive substrate or host-side logic.
+- `ABS`, `SUB`, `CMP`, `MIN`, `MAX`, `CONS`, `DIV`, `MOD`, `MUL`, `SHL`, `SHR`, and `SGN` are composite helpers over the primitive substrate or host-side logic.
 
 ## Assembly Text
 
@@ -107,6 +107,11 @@ Memory rules:
 | `SGN` | none | `[a] -> [-1|0|+1]` | Sign as balanced trit |
 | `SUB` | none | `[a, b] -> [a - b]` | Composite helper |
 | `CMP` | none | `[a, b] -> [-1|0|+1]` | `-1` if `a < b`, `0` if equal, `+1` if `a > b` |
+| `MIN` | none | `[a, b] -> [min(a, b)]` | Composite helper |
+| `MAX` | none | `[a, b] -> [max(a, b)]` | Composite helper |
+| `CONS` | none | `[a, b] -> [a if a == b else 0]` | Agree-or-zero consensus |
+| `DIV` | none | `[a, b] -> [trunc_toward_zero(a / b)]` | Raises on `b == 0` |
+| `MOD` | none | `[a, b] -> [a - trunc_toward_zero(a / b) * b]` | Remainder sign follows dividend |
 | `MUL` | none | `[a, b] -> [a * b]` | Composite helper |
 
 ### Memory

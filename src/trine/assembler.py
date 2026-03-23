@@ -16,7 +16,7 @@ class AssemblerError(ValueError):
 _NO_OPERAND_OPS = {
     Op.DUP, Op.SWAP, Op.POP, Op.OVER, Op.ROT,
     Op.INC, Op.DEC, Op.NEG, Op.ABS, Op.SHL, Op.SHR, Op.SGN,
-    Op.ADD, Op.SUB, Op.CMP, Op.MUL,
+    Op.ADD, Op.SUB, Op.CMP, Op.MIN, Op.MAX, Op.CONS, Op.DIV, Op.MOD, Op.MUL,
     Op.LOAD, Op.STORE,
     Op.PRINT, Op.HALT,
 }

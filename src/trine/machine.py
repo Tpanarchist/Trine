@@ -244,6 +244,61 @@ def ternary_cmp(a: int, b: int, *, tick_sink: TickSink = None) -> int:
     return sign(ternary_sub(a, b, tick_sink=tick_sink))
 
 
+def ternary_min(a: int, b: int, *, tick_sink: TickSink = None) -> int:
+    """Minimum under the existing integer ordering."""
+    return a if ternary_cmp(a, b, tick_sink=tick_sink) <= 0 else b
+
+
+def ternary_max(a: int, b: int, *, tick_sink: TickSink = None) -> int:
+    """Maximum under the existing integer ordering."""
+    return a if ternary_cmp(a, b, tick_sink=tick_sink) >= 0 else b
+
+
+def ternary_cons(a: int, b: int, *, tick_sink: TickSink = None) -> int:
+    """Consensus: return the shared value if equal, otherwise zero."""
+    return a if ternary_cmp(a, b, tick_sink=tick_sink) == 0 else 0
+
+
+def _ternary_divmod(a: int, b: int, *, tick_sink: TickSink = None) -> Tuple[int, int]:
+    """Division with truncation toward zero and remainder matching the dividend sign."""
+    if b == 0:
+        raise ZeroDivisionError("division by zero")
+    if a == 0:
+        return 0, 0
+
+    dividend = ternary_abs(a, tick_sink=tick_sink)
+    divisor = ternary_abs(b, tick_sink=tick_sink)
+    quotient = 0
+    remainder = dividend
+
+    while ternary_cmp(remainder, divisor, tick_sink=tick_sink) >= 0:
+        remainder = ternary_sub(remainder, divisor, tick_sink=tick_sink)
+        quotient, ticks = _run_unary_machine("increment", quotient)
+        _emit_ticks(tick_sink, ticks)
+
+    if (a < 0) != (b < 0) and quotient != 0:
+        quotient, ticks = _run_unary_machine("negate", quotient)
+        _emit_ticks(tick_sink, ticks)
+
+    if a < 0 and remainder != 0:
+        remainder, ticks = _run_unary_machine("negate", remainder)
+        _emit_ticks(tick_sink, ticks)
+
+    return quotient, remainder
+
+
+def ternary_div(a: int, b: int, *, tick_sink: TickSink = None) -> int:
+    """Integer division with truncation toward zero."""
+    quotient, _ = _ternary_divmod(a, b, tick_sink=tick_sink)
+    return quotient
+
+
+def ternary_mod(a: int, b: int, *, tick_sink: TickSink = None) -> int:
+    """Remainder paired with truncation-toward-zero division."""
+    _, remainder = _ternary_divmod(a, b, tick_sink=tick_sink)
+    return remainder
+
+
 def ternary_mul(a: int, b: int, *, tick_sink: TickSink = None) -> int:
     """Multiplication via shift-and-add with trit dispatch."""
     if b == 0:

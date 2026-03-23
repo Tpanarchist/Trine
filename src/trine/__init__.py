@@ -11,7 +11,18 @@ from .operations import (
 from .assembler import AssemblerError, assemble, assemble_file, assemble_lines
 from .fsm import MiniFSM, MachineError
 from .model import TernaryMachineModel
-from .machine import TernaryMachine, ternary_abs, ternary_sub, ternary_cmp, ternary_mul
+from .machine import (
+    TernaryMachine,
+    ternary_abs,
+    ternary_sub,
+    ternary_cmp,
+    ternary_min,
+    ternary_max,
+    ternary_cons,
+    ternary_div,
+    ternary_mod,
+    ternary_mul,
+)
 from .vm import TernaryVM, Instruction, Op, VMError
 
 __all__ = [
@@ -24,7 +35,16 @@ __all__ = [
     "AssemblerError", "assemble", "assemble_file", "assemble_lines",
     "MiniFSM", "MachineError",
     "TernaryMachineModel",
-    "TernaryMachine", "ternary_abs", "ternary_sub", "ternary_cmp", "ternary_mul",
+    "TernaryMachine",
+    "ternary_abs",
+    "ternary_sub",
+    "ternary_cmp",
+    "ternary_min",
+    "ternary_max",
+    "ternary_cons",
+    "ternary_div",
+    "ternary_mod",
+    "ternary_mul",
     "TernaryVM", "Instruction", "Op", "VMError",
 ]
 

@@ -6,8 +6,9 @@ import pytest
 from trine import (
     Trit, coerce_trits, Tape,
     int_to_trits, trits_to_int, format_trits,
-    TernaryMachine, ternary_abs, ternary_sub, ternary_cmp, ternary_mul,
-    TernaryVM, Instruction, Op,
+    TernaryMachine, ternary_abs, ternary_sub, ternary_cmp,
+    ternary_min, ternary_max, ternary_cons, ternary_div, ternary_mod, ternary_mul,
+    TernaryVM, Instruction, Op, VMError,
     AssemblerError, assemble, assemble_file,
     shift_left, shift_right, sign,
 )
@@ -161,6 +162,44 @@ class TestComposite:
     def test_cmp(self, a, b, expected):
         assert ternary_cmp(a, b) == expected
 
+    @pytest.mark.parametrize("a,b,expected", [
+        (1, 2, 1), (5, 5, 5), (13, -4, -4), (-7, -2, -7),
+    ])
+    def test_min(self, a, b, expected):
+        assert ternary_min(a, b) == expected
+
+    @pytest.mark.parametrize("a,b,expected", [
+        (1, 2, 2), (5, 5, 5), (13, -4, 13), (-7, -2, -2),
+    ])
+    def test_max(self, a, b, expected):
+        assert ternary_max(a, b) == expected
+
+    @pytest.mark.parametrize("a,b,expected", [
+        (1, 1, 1), (0, 0, 0), (-4, -4, -4), (1, -1, 0), (5, 0, 0),
+    ])
+    def test_cons(self, a, b, expected):
+        assert ternary_cons(a, b) == expected
+
+    @pytest.mark.parametrize("a,b,expected", [
+        (7, 3, 2), (-7, 3, -2), (7, -3, -2), (-7, -3, 2), (2, 5, 0),
+    ])
+    def test_div(self, a, b, expected):
+        assert ternary_div(a, b) == expected
+
+    @pytest.mark.parametrize("a,b,expected", [
+        (7, 3, 1), (-7, 3, -1), (7, -3, 1), (-7, -3, -1), (2, 5, 2),
+    ])
+    def test_mod(self, a, b, expected):
+        assert ternary_mod(a, b) == expected
+
+    def test_div_by_zero_raises(self):
+        with pytest.raises(ZeroDivisionError, match="division by zero"):
+            ternary_div(7, 0)
+
+    def test_mod_by_zero_raises(self):
+        with pytest.raises(ZeroDivisionError, match="division by zero"):
+            ternary_mod(7, 0)
+
     @pytest.mark.parametrize("value,expected", [
         (0, 0), (1, 3), (-1, -3), (13, 39),
     ])
@@ -261,6 +300,37 @@ class TestAlgebraicProofs:
     def test_abs_idempotent(self, n):
         """abs(abs(n)) == abs(n)"""
         assert ternary_abs(ternary_abs(n)) == ternary_abs(n)
+
+    @pytest.mark.parametrize("a,b", [(1, 2), (13, -5), (-40, 27), (0, 13)])
+    def test_min_commutative(self, a, b):
+        assert ternary_min(a, b) == ternary_min(b, a)
+
+    @pytest.mark.parametrize("a,b", [(1, 2), (13, -5), (-40, 27), (0, 13)])
+    def test_max_commutative(self, a, b):
+        assert ternary_max(a, b) == ternary_max(b, a)
+
+    @pytest.mark.parametrize("n", PROOF_VALUES)
+    def test_min_idempotent(self, n):
+        assert ternary_min(n, n) == n
+
+    @pytest.mark.parametrize("n", PROOF_VALUES)
+    def test_max_idempotent(self, n):
+        assert ternary_max(n, n) == n
+
+    @pytest.mark.parametrize("n", PROOF_VALUES)
+    def test_cons_identity(self, n):
+        assert ternary_cons(n, n) == n
+
+    @pytest.mark.parametrize("a,b", [(1, 2), (13, -5), (-40, 27), (0, 13)])
+    def test_cons_disagreement_returns_zero(self, a, b):
+        assert ternary_cons(a, b) == 0
+
+    @pytest.mark.parametrize("a,b", [(7, 3), (-7, 3), (7, -3), (-7, -3), (2, 5)])
+    def test_div_mod_recombine(self, a, b):
+        q = ternary_div(a, b)
+        r = ternary_mod(a, b)
+        assert a == q * b + r
+        assert abs(r) < abs(b)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -409,6 +479,68 @@ class TestVM:
             vm = TernaryVM(prog).run()
             assert int(vm.output[0].split()[0]) == expected
 
+    def test_min_returns_lesser_value(self):
+        prog = [
+            Instruction(Op.PUSH, 13), Instruction(Op.PUSH, -4),
+            Instruction(Op.MIN), Instruction(Op.PRINT), Instruction(Op.HALT),
+        ]
+        vm = TernaryVM(prog).run()
+        assert int(vm.output[0].split()[0]) == -4
+
+    def test_max_returns_greater_value(self):
+        prog = [
+            Instruction(Op.PUSH, 13), Instruction(Op.PUSH, -4),
+            Instruction(Op.MAX), Instruction(Op.PRINT), Instruction(Op.HALT),
+        ]
+        vm = TernaryVM(prog).run()
+        assert int(vm.output[0].split()[0]) == 13
+
+    def test_cons_returns_equal_value_or_zero(self):
+        prog_equal = [
+            Instruction(Op.PUSH, 4), Instruction(Op.PUSH, 4),
+            Instruction(Op.CONS), Instruction(Op.PRINT), Instruction(Op.HALT),
+        ]
+        prog_unequal = [
+            Instruction(Op.PUSH, 4), Instruction(Op.PUSH, -4),
+            Instruction(Op.CONS), Instruction(Op.PRINT), Instruction(Op.HALT),
+        ]
+        vm_equal = TernaryVM(prog_equal).run()
+        vm_unequal = TernaryVM(prog_unequal).run()
+        assert int(vm_equal.output[0].split()[0]) == 4
+        assert int(vm_unequal.output[0].split()[0]) == 0
+
+    def test_div_uses_truncation_toward_zero(self):
+        prog = [
+            Instruction(Op.PUSH, -7), Instruction(Op.PUSH, 3),
+            Instruction(Op.DIV), Instruction(Op.PRINT), Instruction(Op.HALT),
+        ]
+        vm = TernaryVM(prog).run()
+        assert int(vm.output[0].split()[0]) == -2
+
+    def test_mod_matches_dividend_sign(self):
+        prog = [
+            Instruction(Op.PUSH, -7), Instruction(Op.PUSH, 3),
+            Instruction(Op.MOD), Instruction(Op.PRINT), Instruction(Op.HALT),
+        ]
+        vm = TernaryVM(prog).run()
+        assert int(vm.output[0].split()[0]) == -1
+
+    def test_div_by_zero_raises_vm_error(self):
+        prog = [
+            Instruction(Op.PUSH, 7), Instruction(Op.PUSH, 0),
+            Instruction(Op.DIV), Instruction(Op.HALT),
+        ]
+        with pytest.raises(VMError, match="division by zero"):
+            TernaryVM(prog).run()
+
+    def test_mod_by_zero_raises_vm_error(self):
+        prog = [
+            Instruction(Op.PUSH, 7), Instruction(Op.PUSH, 0),
+            Instruction(Op.MOD), Instruction(Op.HALT),
+        ]
+        with pytest.raises(VMError, match="division by zero"):
+            TernaryVM(prog).run()
+
     def test_mul_tracks_composite_ops_and_primitive_ticks(self):
         prog = [
             Instruction(Op.PUSH, 2), Instruction(Op.PUSH, 3),
@@ -423,6 +555,56 @@ class TestVM:
         prog = [
             Instruction(Op.PUSH, 2), Instruction(Op.PUSH, 3),
             Instruction(Op.CMP), Instruction(Op.PRINT), Instruction(Op.HALT),
+        ]
+        vm = TernaryVM(prog).run()
+        assert int(vm.output[0].split()[0]) == -1
+        assert vm.composite_ops == 1
+        assert vm.alu_ticks > 0
+
+    def test_min_tracks_composite_ops_and_primitive_ticks(self):
+        prog = [
+            Instruction(Op.PUSH, 13), Instruction(Op.PUSH, -4),
+            Instruction(Op.MIN), Instruction(Op.PRINT), Instruction(Op.HALT),
+        ]
+        vm = TernaryVM(prog).run()
+        assert int(vm.output[0].split()[0]) == -4
+        assert vm.composite_ops == 1
+        assert vm.alu_ticks > 0
+
+    def test_max_tracks_composite_ops_and_primitive_ticks(self):
+        prog = [
+            Instruction(Op.PUSH, 13), Instruction(Op.PUSH, -4),
+            Instruction(Op.MAX), Instruction(Op.PRINT), Instruction(Op.HALT),
+        ]
+        vm = TernaryVM(prog).run()
+        assert int(vm.output[0].split()[0]) == 13
+        assert vm.composite_ops == 1
+        assert vm.alu_ticks > 0
+
+    def test_cons_tracks_composite_ops_and_primitive_ticks(self):
+        prog = [
+            Instruction(Op.PUSH, 4), Instruction(Op.PUSH, 4),
+            Instruction(Op.CONS), Instruction(Op.PRINT), Instruction(Op.HALT),
+        ]
+        vm = TernaryVM(prog).run()
+        assert int(vm.output[0].split()[0]) == 4
+        assert vm.composite_ops == 1
+        assert vm.alu_ticks > 0
+
+    def test_div_tracks_composite_ops_and_primitive_ticks(self):
+        prog = [
+            Instruction(Op.PUSH, -7), Instruction(Op.PUSH, 3),
+            Instruction(Op.DIV), Instruction(Op.PRINT), Instruction(Op.HALT),
+        ]
+        vm = TernaryVM(prog).run()
+        assert int(vm.output[0].split()[0]) == -2
+        assert vm.composite_ops == 1
+        assert vm.alu_ticks > 0
+
+    def test_mod_tracks_composite_ops_and_primitive_ticks(self):
+        prog = [
+            Instruction(Op.PUSH, -7), Instruction(Op.PUSH, 3),
+            Instruction(Op.MOD), Instruction(Op.PRINT), Instruction(Op.HALT),
         ]
         vm = TernaryVM(prog).run()
         assert int(vm.output[0].split()[0]) == -1
@@ -486,6 +668,40 @@ class TestAssembler:
             """
         )
         assert program[3] == Instruction(Op.ROT)
+
+    def test_assemble_min_max_cons(self):
+        program = assemble(
+            """
+            PUSH 13
+            PUSH -4
+            MIN
+            PUSH 13
+            PUSH -4
+            MAX
+            PUSH 4
+            PUSH 4
+            CONS
+            HALT
+            """
+        )
+        assert program[2] == Instruction(Op.MIN)
+        assert program[5] == Instruction(Op.MAX)
+        assert program[8] == Instruction(Op.CONS)
+
+    def test_assemble_div_mod(self):
+        program = assemble(
+            """
+            PUSH -7
+            PUSH 3
+            DIV
+            PUSH -7
+            PUSH 3
+            MOD
+            HALT
+            """
+        )
+        assert program[2] == Instruction(Op.DIV)
+        assert program[5] == Instruction(Op.MOD)
 
     def test_assemble_resolves_jump_label(self):
         program = assemble(
@@ -594,6 +810,48 @@ class TestAssembler:
         )
         vm = TernaryVM(program).run()
         assert vm.stack == [2, 3, 1]
+
+    def test_min_max_cons_program_executes(self):
+        program = assemble(
+            """
+            PUSH 13
+            PUSH -4
+            MIN
+            PRINT
+            PUSH 13
+            PUSH -4
+            MAX
+            PRINT
+            PUSH 4
+            PUSH 4
+            CONS
+            PRINT
+            PUSH 4
+            PUSH -4
+            CONS
+            PRINT
+            HALT
+            """
+        )
+        vm = TernaryVM(program).run()
+        assert [int(o.split()[0]) for o in vm.output] == [-4, 13, 4, 0]
+
+    def test_div_mod_program_executes(self):
+        program = assemble(
+            """
+            PUSH -7
+            PUSH 3
+            DIV
+            PRINT
+            PUSH -7
+            PUSH 3
+            MOD
+            PRINT
+            HALT
+            """
+        )
+        vm = TernaryVM(program).run()
+        assert [int(o.split()[0]) for o in vm.output] == [-2, -1]
 
     def test_assemble_file_example(self):
         path = Path(__file__).resolve().parents[1] / "examples" / "factorial.trine"

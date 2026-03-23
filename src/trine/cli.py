@@ -7,7 +7,15 @@ from pathlib import Path
 
 from .assembler import assemble_file
 from .formatting import format_trits, int_to_trits
-from .machine import TernaryMachine, ternary_abs
+from .machine import (
+    TernaryMachine,
+    ternary_abs,
+    ternary_min,
+    ternary_max,
+    ternary_cons,
+    ternary_div,
+    ternary_mod,
+)
 from .operations import shift_left, shift_right, sign
 from .vm import TernaryVM, Instruction, Op
 
@@ -131,6 +139,52 @@ def demo() -> None:
     print(
         f"  vm_steps={vm_cmp.step_count}  alu_ticks={vm_cmp.alu_ticks}  "
         f"composite_ops={vm_cmp.composite_ops}"
+    )
+
+    # Composite min/max/consensus
+    print("\n  -- Composite helpers: min(2, -5), max(2, -5), cons(4, 4), cons(4, -4) --")
+    print(f"    -> min(2, -5) = {ternary_min(2, -5)}")
+    print(f"    -> max(2, -5) = {ternary_max(2, -5)}")
+    print(f"    -> cons(4, 4) = {ternary_cons(4, 4)}")
+    print(f"    -> cons(4, -4) = {ternary_cons(4, -4)}")
+
+    prog_minmax = [
+        Instruction(Op.PUSH, 2), Instruction(Op.PUSH, -5),
+        Instruction(Op.MIN), Instruction(Op.PRINT),
+        Instruction(Op.PUSH, 2), Instruction(Op.PUSH, -5),
+        Instruction(Op.MAX), Instruction(Op.PRINT),
+        Instruction(Op.PUSH, 4), Instruction(Op.PUSH, 4),
+        Instruction(Op.CONS), Instruction(Op.PRINT),
+        Instruction(Op.PUSH, 4), Instruction(Op.PUSH, -4),
+        Instruction(Op.CONS), Instruction(Op.PRINT),
+        Instruction(Op.HALT),
+    ]
+    vm_minmax = TernaryVM(prog_minmax).run()
+    for line in vm_minmax.output:
+        print(f"    -> {line}")
+    print(
+        f"  vm_steps={vm_minmax.step_count}  alu_ticks={vm_minmax.alu_ticks}  "
+        f"composite_ops={vm_minmax.composite_ops}"
+    )
+
+    # Composite division/modulo
+    print("\n  -- Composite helpers: div(-7, 3), mod(-7, 3) --")
+    print(f"    -> div(-7, 3) = {ternary_div(-7, 3)}")
+    print(f"    -> mod(-7, 3) = {ternary_mod(-7, 3)}")
+
+    prog_divmod = [
+        Instruction(Op.PUSH, -7), Instruction(Op.PUSH, 3),
+        Instruction(Op.DIV), Instruction(Op.PRINT),
+        Instruction(Op.PUSH, -7), Instruction(Op.PUSH, 3),
+        Instruction(Op.MOD), Instruction(Op.PRINT),
+        Instruction(Op.HALT),
+    ]
+    vm_divmod = TernaryVM(prog_divmod).run()
+    for line in vm_divmod.output:
+        print(f"    -> {line}")
+    print(
+        f"  vm_steps={vm_divmod.step_count}  alu_ticks={vm_divmod.alu_ticks}  "
+        f"composite_ops={vm_divmod.composite_ops}"
     )
 
     # Stack rotation

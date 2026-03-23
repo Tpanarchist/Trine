@@ -20,7 +20,7 @@ Trine currently demonstrates:
 - A clear split between primitive tape/FSM operations and composite helper operations
 - `BR3` as a primitive ternary branch in the VM
 - A runnable assembly-text path from `.trine` source to VM program, including labels
-- A fuller stack-machine surface including `ROT`
+- A fuller stack-machine surface including `ROT`, `MIN`, `MAX`, `CONS`, `DIV`, and `MOD`
 - Algebraic and program-level correctness checks in an automated test suite
 
 Trine does not currently demonstrate:
@@ -71,10 +71,10 @@ and [`examples/count_to_five.trine`](examples/count_to_five.trine) for a label-b
 ```
 Programs          -> factorial, fibonacci, loops, branching, memory demos
 Assembler         -> line-oriented `.trine` text -> instruction list with labels
-VM                -> stack machine, 26 opcodes, BR3
+VM                -> stack machine, 31 opcodes, BR3
 Memory            -> LOAD, STORE, sparse default-zero word cells
 Primitive ALU     -> increment, decrement, negate, add
-Composite helpers -> abs, sub, cmp, mul, shift, sign
+Composite helpers -> abs, sub, cmp, min, max, cons, div, mod, mul, shift, sign
 Operations        -> injectable descriptors
 FSM               -> MiniFSM tick cycle
 Model             -> tape, head, carry register, trace
@@ -86,11 +86,12 @@ The model performs the computation. Operations change behavior without changing
 the substrate.
 
 In the current codebase, only `increment`, `decrement`, `negate`, and `add`
-execute as primitive tape/FSM operations. `abs`, `sub`, `cmp`, `mul`,
-`shift_left`, `shift_right`, and `sign` are composite helpers built either
-from those primitives or from direct host-side logic. `LOAD` and `STORE`
-operate on sparse word-addressed VM memory with default-zero reads and
-write-zero-deletes semantics.
+execute as primitive tape/FSM operations. `abs`, `sub`, `cmp`, `min`, `max`,
+`cons`, `div`, `mod`, `mul`, `shift_left`, `shift_right`, and `sign` are
+composite helpers built either from those primitives or from direct host-side
+logic. `DIV` truncates toward zero and `MOD` returns the paired remainder whose
+sign follows the dividend. `LOAD` and `STORE` operate on sparse word-addressed
+VM memory with default-zero reads and write-zero-deletes semantics.
 
 ## Why Ternary
 
@@ -104,7 +105,7 @@ Python ternary simulator is faster or more useful than binary implementations.
 
 ## Verification
 
-The test suite currently covers 192 cases across:
+The test suite currently covers 277 cases across:
 
 - Trit and tape primitives
 - Balanced ternary conversion
@@ -162,9 +163,9 @@ Current strengths:
 
 - Clean layered package structure
 - Extensible operation injection model
-- Ternary-native `BR3`, `CMP`, `ROT`, and sparse word-addressed `LOAD`/`STORE`
+- Ternary-native `BR3`, `CMP`, `MIN`, `MAX`, `CONS`, `DIV`, `MOD`, `ROT`, and sparse word-addressed `LOAD`/`STORE`
 - Minimal executable assembler with label resolution for the documented ISA text
-- 192 passing tests
+- 277 passing tests
 - CI and module entrypoint support
 
 Current limits:

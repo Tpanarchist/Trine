@@ -61,7 +61,7 @@ Assembler         -> line-oriented `.trine` text -> instruction list with labels
 VM                -> stack, PC, opcodes, BR3
 Memory            -> LOAD, STORE, sparse default-zero word cells
 Primitive ALU     -> increment, decrement, negate, add
-Composite helpers -> abs, sub, cmp, mul, shifts, sign
+Composite helpers -> abs, sub, cmp, min, max, cons, div, mod, mul, shifts, sign
 Operations        -> injectable descriptors
 FSM               -> MiniFSM tick cycle
 Model             -> tape, head, carry, trace
@@ -69,11 +69,12 @@ Primitives        -> Trit, Tape, formatting, conversion
 ```
 
 Only `increment`, `decrement`, `negate`, and `add` currently execute as
-primitive tape/FSM operations. `abs`, `sub`, `cmp`, `mul`, `shift_left`,
-`shift_right`, and `sign` are composite helpers built either from those
-primitives or from direct host-side logic. `LOAD` and `STORE` operate on sparse
-word-addressed VM memory with default-zero reads and write-zero-deletes
-semantics.
+primitive tape/FSM operations. `abs`, `sub`, `cmp`, `min`, `max`, `cons`,
+`div`, `mod`, `mul`, `shift_left`, `shift_right`, and `sign` are composite
+helpers built either from those primitives or from direct host-side logic.
+`DIV` truncates toward zero and `MOD` returns the paired remainder whose sign
+follows the dividend. `LOAD` and `STORE` operate on sparse word-addressed VM
+memory with default-zero reads and write-zero-deletes semantics.
 
 ### Core Principles
 
@@ -100,15 +101,15 @@ structural property of the codebase, not a speculative future claim.
 - Primitive unary operations: increment, decrement, negate
 - Primitive binary operation: addition with carry and second tape
 - Stack rotation with `ROT`
-- Composite helpers: abs, sign, shift-left, shift-right, subtraction, comparison, multiplication
+- Composite helpers: abs, sign, shift-left, shift-right, subtraction, comparison, minimum, maximum, consensus, division, modulo, multiplication
 - Sparse word-addressed VM memory with `LOAD` / `STORE`
-- `TernaryVM` with 26 opcodes including `BR3`
+- `TernaryVM` with 31 opcodes including `BR3`
 - Minimal assembler: line-oriented text with labels -> `Instruction` list
 - `python -m trine` entrypoint and example VM program
 - Runnable assembly example in `examples/factorial.trine`
 - Runnable label-based assembly example in `examples/count_to_five.trine`
 - GitHub Actions CI running tests and a module smoke test
-- 192 pytest cases covering primitives, operations, algebraic properties, memory, assembly, labels, stack rotation, and VM programs
+- 277 pytest cases covering primitives, operations, algebraic properties, memory, assembly, labels, stack rotation, and VM programs
 - VM metrics: `alu_ticks` for primitive machine ticks and `composite_ops` for host-side/composed VM instructions
 - A small ISA / assembly-text note in `TRINE_ISA.md`
 
@@ -139,9 +140,9 @@ structural property of the codebase, not a speculative future claim.
 
 ## Near-Term Priorities
 
-1. Add the remaining M1 arithmetic surface: division, modular arithmetic, and ternary MIN / MAX / consensus.
-2. Expand assembler ergonomics beyond labels: constants, data directives, and possibly macros.
-3. Expand memory-using example programs and benchmarks so the VM is exercised as a machine model, not only as an arithmetic demonstrator.
+1. Expand assembler ergonomics beyond labels: constants, data directives, and possibly macros.
+2. Expand memory-using example programs and benchmarks so the VM is exercised as a machine model, not only as an arithmetic demonstrator.
+3. Benchmark operation counts and ALU ticks now that the M1 arithmetic surface is in place.
 
 ---
 
@@ -155,7 +156,7 @@ actually validating the claims they are meant to test.
 This milestone established the software reference stack.
 
 - [x] Python package (`src/trine/`)
-- [x] 192 pytest cases
+- [x] 277 pytest cases
 - [x] Separated core library from CLI/demo code
 - [x] README and project specification
 - [x] `python -m trine` entrypoint
@@ -170,9 +171,9 @@ This milestone established the software reference stack.
 - [x] Comparison operation (returns trit: less/equal/greater)
 - [x] Small ISA specification document
 - [x] Minimal assembly syntax specification
-- [ ] Integer division
-- [ ] Modular arithmetic
-- [ ] Ternary MIN / MAX / consensus operations
+- [x] Integer division
+- [x] Modular arithmetic
+- [x] Ternary MIN / MAX / consensus operations
 - [x] `ROT` instruction
 - [ ] Benchmarks focused on operation counts and ALU ticks, not marketing claims
 
