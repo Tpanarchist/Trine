@@ -99,15 +99,16 @@ structural property of the codebase, not a speculative future claim.
 - Injectable operation descriptors
 - Primitive unary operations: increment, decrement, negate
 - Primitive binary operation: addition with carry and second tape
+- Stack rotation with `ROT`
 - Composite helpers: abs, sign, shift-left, shift-right, subtraction, comparison, multiplication
 - Sparse word-addressed VM memory with `LOAD` / `STORE`
-- `TernaryVM` with 25 opcodes including `BR3`
+- `TernaryVM` with 26 opcodes including `BR3`
 - Minimal assembler: line-oriented text with labels -> `Instruction` list
 - `python -m trine` entrypoint and example VM program
 - Runnable assembly example in `examples/factorial.trine`
 - Runnable label-based assembly example in `examples/count_to_five.trine`
 - GitHub Actions CI running tests and a module smoke test
-- 189 pytest cases covering primitives, operations, algebraic properties, memory, assembly, labels, and VM programs
+- 192 pytest cases covering primitives, operations, algebraic properties, memory, assembly, labels, stack rotation, and VM programs
 - VM metrics: `alu_ticks` for primitive machine ticks and `composite_ops` for host-side/composed VM instructions
 - A small ISA / assembly-text note in `TRINE_ISA.md`
 
@@ -138,7 +139,7 @@ structural property of the codebase, not a speculative future claim.
 
 ## Near-Term Priorities
 
-1. Add the remaining M1 arithmetic surface: division, modular arithmetic, MIN / MAX / consensus, and `ROT`.
+1. Add the remaining M1 arithmetic surface: division, modular arithmetic, and ternary MIN / MAX / consensus.
 2. Expand assembler ergonomics beyond labels: constants, data directives, and possibly macros.
 3. Expand memory-using example programs and benchmarks so the VM is exercised as a machine model, not only as an arithmetic demonstrator.
 
@@ -154,7 +155,7 @@ actually validating the claims they are meant to test.
 This milestone established the software reference stack.
 
 - [x] Python package (`src/trine/`)
-- [x] 189 pytest cases
+- [x] 192 pytest cases
 - [x] Separated core library from CLI/demo code
 - [x] README and project specification
 - [x] `python -m trine` entrypoint
@@ -172,7 +173,7 @@ This milestone established the software reference stack.
 - [ ] Integer division
 - [ ] Modular arithmetic
 - [ ] Ternary MIN / MAX / consensus operations
-- [ ] `ROT` instruction
+- [x] `ROT` instruction
 - [ ] Benchmarks focused on operation counts and ALU ticks, not marketing claims
 
 ### M2: Compiler + Assembler

@@ -359,6 +359,17 @@ class TestVM:
         vm = TernaryVM(prog).run()
         assert int(vm.output[0].split()[0]) == 42
 
+    def test_rot_rotates_top_three(self):
+        prog = [
+            Instruction(Op.PUSH, 1),
+            Instruction(Op.PUSH, 2),
+            Instruction(Op.PUSH, 3),
+            Instruction(Op.ROT),
+            Instruction(Op.HALT),
+        ]
+        vm = TernaryVM(prog).run()
+        assert vm.stack == [2, 3, 1]
+
     def test_memory_load_default_zero(self):
         prog = [
             Instruction(Op.PUSH, 7),
@@ -464,6 +475,18 @@ class TestAssembler:
         )
         assert program[2] == Instruction(Op.BR3, (3, 5, 7))
 
+    def test_assemble_rot(self):
+        program = assemble(
+            """
+            PUSH 1
+            PUSH 2
+            PUSH 3
+            ROT
+            HALT
+            """
+        )
+        assert program[3] == Instruction(Op.ROT)
+
     def test_assemble_resolves_jump_label(self):
         program = assemble(
             """
@@ -558,6 +581,19 @@ class TestAssembler:
         )
         vm = TernaryVM(program).run()
         assert [int(o.split()[0]) for o in vm.output] == [1, 2, 3, 4, 5]
+
+    def test_rot_program_executes(self):
+        program = assemble(
+            """
+            PUSH 1
+            PUSH 2
+            PUSH 3
+            ROT
+            HALT
+            """
+        )
+        vm = TernaryVM(program).run()
+        assert vm.stack == [2, 3, 1]
 
     def test_assemble_file_example(self):
         path = Path(__file__).resolve().parents[1] / "examples" / "factorial.trine"

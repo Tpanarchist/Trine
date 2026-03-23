@@ -133,6 +133,15 @@ def demo() -> None:
         f"composite_ops={vm_cmp.composite_ops}"
     )
 
+    # Stack rotation
+    print("\n  -- Stack ROT: [1, 2, 3] -> [2, 3, 1] --")
+    prog_rot = [
+        Instruction(Op.PUSH, 1), Instruction(Op.PUSH, 2), Instruction(Op.PUSH, 3),
+        Instruction(Op.ROT), Instruction(Op.HALT),
+    ]
+    vm_rot = TernaryVM(prog_rot).run()
+    print(f"  stack={vm_rot.stack}")
+
     # Assembly example
     print("\n  -- Assembly: factorial.trine --")
     asm_program = assemble_file(Path(__file__).resolve().parents[2] / "examples" / "factorial.trine")

@@ -20,6 +20,7 @@ Trine currently demonstrates:
 - A clear split between primitive tape/FSM operations and composite helper operations
 - `BR3` as a primitive ternary branch in the VM
 - A runnable assembly-text path from `.trine` source to VM program, including labels
+- A fuller stack-machine surface including `ROT`
 - Algebraic and program-level correctness checks in an automated test suite
 
 Trine does not currently demonstrate:
@@ -70,7 +71,7 @@ and [`examples/count_to_five.trine`](examples/count_to_five.trine) for a label-b
 ```
 Programs          -> factorial, fibonacci, loops, branching, memory demos
 Assembler         -> line-oriented `.trine` text -> instruction list with labels
-VM                -> stack machine, 25 opcodes, BR3
+VM                -> stack machine, 26 opcodes, BR3
 Memory            -> LOAD, STORE, sparse default-zero word cells
 Primitive ALU     -> increment, decrement, negate, add
 Composite helpers -> abs, sub, cmp, mul, shift, sign
@@ -103,7 +104,7 @@ Python ternary simulator is faster or more useful than binary implementations.
 
 ## Verification
 
-The test suite currently covers 189 cases across:
+The test suite currently covers 192 cases across:
 
 - Trit and tape primitives
 - Balanced ternary conversion
@@ -161,9 +162,9 @@ Current strengths:
 
 - Clean layered package structure
 - Extensible operation injection model
-- Ternary-native `BR3`, `CMP`, and sparse word-addressed `LOAD`/`STORE`
+- Ternary-native `BR3`, `CMP`, `ROT`, and sparse word-addressed `LOAD`/`STORE`
 - Minimal executable assembler with label resolution for the documented ISA text
-- 189 passing tests
+- 192 passing tests
 - CI and module entrypoint support
 
 Current limits:

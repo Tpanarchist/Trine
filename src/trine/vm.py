@@ -27,6 +27,7 @@ class Op:
     SWAP  = "SWAP"
     POP   = "POP"
     OVER  = "OVER"
+    ROT   = "ROT"
     # Unary ALU
     INC   = "INC"
     DEC   = "DEC"
@@ -180,6 +181,11 @@ class TernaryVM:
             b = self._pop()
             a = self._peek()
             self._push(b)
+            self._push(a)
+        elif op == Op.ROT:
+            c, b, a = self._pop(), self._pop(), self._pop()
+            self._push(b)
+            self._push(c)
             self._push(a)
 
         # Unary ALU

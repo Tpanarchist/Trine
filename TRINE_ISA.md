@@ -86,6 +86,7 @@ Memory rules:
 | `SWAP` | none | `[a, b] -> [b, a]` | Swap top two values |
 | `POP` | none | `[a] -> []` | Discard top value |
 | `OVER` | none | `[a, b] -> [a, b, a]` | Copy second item to top |
+| `ROT` | none | `[a, b, c] -> [b, c, a]` | Rotate top three values |
 
 ### Primitive ALU
 
