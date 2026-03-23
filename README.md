@@ -1,13 +1,39 @@
 # Trine
 
-A constraint-native balanced ternary computer. ALU, VM, and stored programs derived from first principles. Zero dependencies.
+Trine is a pure-Python reference implementation of balanced ternary computation.
+It models trits, a sparse tape, a constraint-separated ALU, and a small
+stored-program VM with a ternary-native three-way branch.
 
-## What is this?
+The project is real in the sense that it computes correct balanced ternary
+results and verifies algebraic properties of those operations. It is not native
+ternary execution: the current system runs on binary hardware and uses Python to
+simulate ternary semantics.
 
-Trine is a complete ternary computational substrate — from trit primitives `{-1, 0, +1}` through an algebraically verified ALU through a programmable stack-based VM with three-way branching — built in pure Python with no external dependencies.
+## What This Repo Proves
+
+Trine currently demonstrates:
+
+- Correct balanced ternary primitives and conversions
+- A layered architecture with strict separation between constraints, model, and operations
+- An extensible ALU surface built from injectable operation descriptors
+- `BR3` as a primitive ternary branch in the VM
+- Algebraic and program-level correctness checks in an automated test suite
+
+Trine does not currently demonstrate:
+
+- Native ternary hardware
+- Performance advantages over binary implementations
+- A production inference runtime
+- A complete memory-addressed machine model
+
+Ternary arithmetic is relevant to ternary-weight ML research, but this repo is
+a software model, specification aid, and test oracle, not a performant
+inference runtime.
+
+## Example
 
 ```python
-from trine import TernaryMachine, TernaryVM, Instruction, Op
+from trine import Instruction, Op, TernaryMachine, TernaryVM
 
 # Increment 13 in balanced ternary
 m = TernaryMachine("increment").load_int(13).run()
@@ -18,7 +44,7 @@ print(m.balanced())  # "+---"
 m = TernaryMachine("add").load_two(13, 14).run()
 assert m.to_int() == 27  # balanced ternary: "+000"
 
-# Run a program: factorial(5) = 120
+# Run a VM program: factorial(5) = 120
 prog = [
     Instruction(Op.PUSH, 1),
     Instruction(Op.PUSH, 2), Instruction(Op.MUL),
@@ -28,7 +54,7 @@ prog = [
     Instruction(Op.PRINT), Instruction(Op.HALT),
 ]
 vm = TernaryVM(prog).run()
-# → 120 (++++0)
+# -> 120 (++++0)
 ```
 
 See [`examples/factorial_vm.py`](examples/factorial_vm.py) for a runnable VM example.
@@ -36,55 +62,47 @@ See [`examples/factorial_vm.py`](examples/factorial_vm.py) for a runnable VM exa
 ## Architecture
 
 ```
-Programs    →  factorial, fibonacci, loops, three-way branching
-VM          →  stack machine, 20 opcodes, BR3 (ternary conditional)
-ALU         →  add, sub, mul, inc, dec, neg, abs, shift, sign
-Operations  →  injectable descriptors (the ONLY thing that changes)
-FSM         →  MiniFSM tick cycle (read → classify → write → move)
-Model       →  tape, head, carry register, trace
-Primitives  →  Trit {-1, 0, +1}, sparse Tape, balanced ternary conversion
+Programs    -> factorial, fibonacci, loops, three-way branching
+VM          -> stack machine, 20 opcodes, BR3
+ALU         -> add, sub, mul, inc, dec, neg, abs, shift, sign
+Operations  -> injectable descriptors
+FSM         -> MiniFSM tick cycle
+Model       -> tape, head, carry register, trace
+Primitives  -> Trit, Tape, balanced ternary formatting/conversion
 ```
 
-Each layer depends only on the one below it. The FSM never changes. Operations are injected as callables. The substrate is invariant.
+Each layer depends only on the one below it. The FSM enforces legal transitions.
+The model performs the computation. Operations change behavior without changing
+the substrate.
 
-## Why ternary?
+## Why Ternary
 
-- **No sign bit.** Every number is natively signed. No two's complement, no overflow asymmetry, no negative zero.
-- **Negation is free.** Flip each trit. No carry propagation. O(1) per trit.
-- **Three-way branching.** `BR3` dispatches on sign in one instruction. Binary needs two branches.
-- **Multiplication is natively signed.** Shift-and-add with trit dispatch: POS = add, NEG = subtract, ZERO = skip. Booth recoding for free.
-- **Neural network weights are ternary.** {-1, 0, +1} = excitatory, absent, inhibitory. The natural representation for AI inference.
+- Balanced ternary is natively signed: no sign bit, no negative zero.
+- Negation is a trit flip rather than a two's-complement transform.
+- `BR3` is a natural ternary conditional, not a binary branch pattern adapted to ternary.
+- Ternary values `{-1, 0, +1}` are relevant to quantized and ternary-weight ML research.
 
-## Algebraic proofs
+Those properties motivate the project. They do not, by themselves, prove that a
+Python ternary simulator is faster or more useful than binary implementations.
 
-The test suite verifies 161 cases including these algebraic properties:
+## Verification
 
-| Property | Statement |
-|----------|-----------|
-| Symmetry | `inc(dec(n)) == n == dec(inc(n))` |
-| Involution | `neg(neg(n)) == n` |
-| Additive identity | `n + 0 == n` |
-| Additive inverse | `n + (-n) == 0` |
-| Commutativity | `a + b == b + a` |
-| Inc equivalence | `inc(n) == n + 1` |
-| Dec equivalence | `dec(n) == n + (-1)` |
-| Shift inverse | `shr(shl(n)) == n` |
-| Distributivity | `neg(a+b) == neg(a) + neg(b)` |
-| Abs idempotent | `abs(abs(n)) == abs(n)` |
+The test suite currently covers 163 cases across:
 
-## VM instruction set
+- Trit and tape primitives
+- Balanced ternary conversion
+- Unary and binary ALU behavior
+- Composite operations
+- Algebraic properties such as symmetry, involution, commutativity, and distributivity
+- VM programs including loops and `BR3`
 
-| Category | Instructions |
-|----------|-------------|
-| Stack | `PUSH` `DUP` `SWAP` `POP` `OVER` |
-| Unary ALU | `INC` `DEC` `NEG` `ABS` `SHL` `SHR` `SGN` |
-| Binary ALU | `ADD` `SUB` `MUL` |
-| Control | `JMP` `JN` `JZ` `JP` `BR3` |
-| I/O | `PRINT` `HALT` |
+The proofs establish semantic correctness of the implemented operations. They do
+not establish hardware efficiency or application-level advantage.
 
-`BR3` is the ternary-native three-way branch: pop a value, jump to one of three targets based on sign (negative, zero, positive).
+GitHub Actions CI runs `pytest -q` and a `python -m trine` smoke test on Python
+3.10, 3.11, and 3.12.
 
-## Quick start
+## Quick Start
 
 ```bash
 # Install
@@ -93,24 +111,43 @@ cd trine
 python3.12 -m venv .venv312
 .venv312/bin/python -m pip install -e ".[test]"
 
-# Run tests (161 cases, <1 second)
+# Run tests
 .venv312/bin/pytest
 
-# Run demo
+# Run the demo
 .venv312/bin/python -m trine
 
 # Run the example program
 .venv312/bin/python examples/factorial_vm.py
 ```
 
-Requires Python 3.10+. No external dependencies for the core library.
+Requires Python 3.10+. No external runtime dependencies are required for the core library.
 
-On Windows, replace `python3.12` with `py -3.12` and use `.venv312\\Scripts\\python` / `.venv312\\Scripts\\pytest`.
+On Windows, replace `python3.12` with `py -3.12` and use
+`.venv312\Scripts\python` / `.venv312\Scripts\pytest`.
 
-## Project status
+## Project Status
 
-**v0.1.0** — Software substrate complete. See [TRINE_SPEC.md](TRINE_SPEC.md) for the full roadmap from here through FPGA implementation, ternary neural network inference, and custom hardware.
+**v0.1.0**: the software reference stack is in place.
+
+Current strengths:
+
+- Clean layered package structure
+- Extensible operation injection model
+- Ternary-native `BR3`
+- 163 passing tests
+- CI and module entrypoint support
+
+Current limits:
+
+- Execution is still a Python simulation on binary hardware
+- Performance is not competitive with native numeric libraries or hardware
+- The VM is still stack-only and lacks random-access memory
+- The ISA is a Python-level interface, not a hardware-ready ternary encoding
+
+See [TRINE_SPEC.md](TRINE_SPEC.md) for the longer roadmap, current limits, and
+how future FPGA and ML work should be interpreted.
 
 ## License
 
-MIT — Dylan Griffin / Digital Degenerates
+MIT - Dylan Griffin / Digital Degenerates

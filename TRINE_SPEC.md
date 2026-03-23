@@ -1,251 +1,320 @@
-# Trine — Project Specification
+# Trine - Project Specification
 
-**A constraint-native balanced ternary computer.**
+**A constraint-native balanced ternary computer, currently implemented as a pure-Python reference model.**
 
-ALU, VM, and stored programs derived from first principles. Zero dependencies.
+Trine provides an ALU, VM, and stored-program examples derived from first
+principles. The current system is a software specification and verification
+artifact, not native ternary hardware and not a performance claim.
 
 ---
 
 ## Vision
 
-Trine is a complete ternary computational substrate — from trit primitives through
-an algebraically verified ALU through a programmable VM — designed as the
-software foundation for ternary AI inference and training hardware.
+Trine aims to describe what a balanced ternary computing stack could look like
+from primitives through control flow and program execution.
 
-The long-term goal is a ternary computing platform that spans software, FPGA,
-and custom silicon, targeting AI workloads where balanced ternary arithmetic
-provides structural advantages over binary: signed multiply-accumulate,
-three-way branching, and memory-efficient weight representation.
+Today, the project establishes two things:
+
+- the semantics of the current ternary operations are correct as implemented
+- the architecture is modular enough to extend without rewriting the whole substrate
+
+It does **not** yet establish that ternary computation is faster, more
+efficient, or commercially superior to binary approaches. Those questions only
+become meaningful if later milestones validate the design in hardware or in
+compiled implementations that remove Python interpreter overhead.
+
+The long-term roadmap still includes FPGA work, ML-oriented experiments, and
+possible hardware integration, but those remain contingent research directions,
+not validated outcomes.
+
+---
+
+## What Trine Is
+
+Trine is currently:
+
+- a pure-Python reference implementation of balanced ternary semantics
+- a specification aid for future HDL or lower-level implementations
+- a test oracle for checking ternary behavior against algebraic properties
+- a demonstration of a constraint-separated architecture with operation injection
+
+Trine is not currently:
+
+- native ternary execution
+- a performant ML inference engine
+- a hardware-ready ISA with fixed ternary instruction encoding
+- a complete machine with random-access memory and data structures
+
+The distinction matters. Every current trit, ALU tick, and VM instruction is
+executed by Python on conventional binary hardware.
 
 ---
 
 ## Architecture
 
-Trine is layered. Each layer depends only on the one below it. The FSM
-substrate never changes. Only the parameterization changes.
+Trine is layered. Each layer depends only on the layer below it.
 
 ```
-┌─────────────────────────────────────────────┐
-│  Programs    (factorial, fibonacci, etc.)    │
-├─────────────────────────────────────────────┤
-│  VM          (stack, PC, opcodes, BR3)      │
-├─────────────────────────────────────────────┤
-│  ALU         (add, sub, mul, neg, abs, etc.)│
-├─────────────────────────────────────────────┤
-│  Operations  (injectable descriptors)       │
-├─────────────────────────────────────────────┤
-│  FSM         (MiniFSM — tick cycle)         │
-├─────────────────────────────────────────────┤
-│  Model       (tape, head, carry, trace)     │
-├─────────────────────────────────────────────┤
-│  Primitives  (Trit, Tape, formatting)       │
-└─────────────────────────────────────────────┘
+Programs    -> factorial, fibonacci, loops, branching demos
+VM          -> stack, PC, opcodes, BR3
+ALU         -> add, sub, mul, neg, abs, shifts, sign
+Operations  -> injectable descriptors
+FSM         -> MiniFSM tick cycle
+Model       -> tape, head, carry, trace
+Primitives  -> Trit, Tape, formatting, conversion
 ```
 
 ### Core Principles
 
-- **Constraint-native**: The FSM controls what is *permitted*. The model
-  controls what *happens*. They never leak into each other.
-- **Operation injection**: Every ALU operation is a callable descriptor.
-  The substrate is invariant; only the classification rule changes.
-- **Algebraically verified**: Operations are proven correct via compositional
-  tests — symmetry, involution, identity, commutativity, distributivity.
-- **Three-way branching**: `BR3` is a primitive instruction, not a
-  composition of two binary branches. This is native ternary control flow.
-- **Zero dependencies**: The entire system runs in pure Python with no
-  external packages. Portable to any Python 3.10+ environment.
+- **Constraint-native**: the FSM controls what transitions are legal; it does not compute values.
+- **Model separation**: the model performs the work but does not define the transition graph.
+- **Operation injection**: new ALU behavior is introduced by descriptors and rules, not by rewriting the substrate.
+- **Algebraic verification**: properties such as symmetry, involution, and distributivity are encoded as executable tests.
+- **Ternary-native control flow**: `BR3` is a primitive instruction rather than a binary branch idiom adapted to ternary.
+
+This architecture is one of Trine's strongest proven contributions. It is a
+structural property of the codebase, not a speculative future claim.
 
 ---
 
 ## Current Status (v0.1.0)
 
-### What exists
+### What Exists
 
-- **Trit primitives**: `Trit` enum ({-1, 0, +1}), coercion, flip, formatting
-- **Sparse tape**: default-zero, unbounded, write-ZERO-deletes invariant
-- **Balanced ternary conversion**: `int_to_trits`, `trits_to_int`, round-trip verified
-- **MiniFSM**: pure-Python FSM with hierarchical dot-separated state names,
-  `on_enter` callbacks, wildcard sources, before/after hooks
-- **Operation descriptors**: `OpDescriptor(name, rule, halt_check, uses_carry, binary)`
-- **Unary operations**: increment, decrement, negate (FSM-driven); abs, sign,
-  shift_left, shift_right (composite/tape)
-- **Binary operations**: addition with carry register and second tape
-- **Multiplication**: shift-and-add via trit dispatch (natively signed, Booth-free)
-- **Subtraction**: add(a, negate(b)) composition
-- **TernaryVM**: stack-based VM with 20 opcodes including `BR3` (three-way branch),
-  `OVER`, `MUL`, `SUB`, stored programs with loops and conditional branching
-- **161 pytest cases** covering primitives, operations, algebraic proofs, and
-  VM programs — all passing in under 1 second
+- Trit primitives: `Trit`, coercion, flip, formatting helpers
+- Sparse default-zero tape
+- Balanced ternary conversion with round-trip verification
+- `MiniFSM` as the control substrate
+- Injectable operation descriptors
+- Unary operations: increment, decrement, negate
+- Composite operations: abs, sign, shift-left, shift-right
+- Binary addition with carry and second tape
+- Multiplication and subtraction as compositions over the ALU
+- `TernaryVM` with 20 opcodes including `BR3`
+- `python -m trine` entrypoint and example VM program
+- GitHub Actions CI running tests and a module smoke test
+- 163 pytest cases covering primitives, operations, algebraic properties, and VM programs
 
-### What does not exist yet
+### What Is Proven
 
-- FPGA implementation
-- Neural network inference or training
-- Hardware design files
-- Compiler or assembler toolchain
-- GitHub Actions CI
+- The current operations produce correct results for the tested domains.
+- The algebraic properties encoded in the suite hold for the implemented rules.
+- The architecture supports extension without breaking the FSM/model separation.
+
+### What Is Not Yet Proven
+
+- Any performance advantage over binary implementations
+- Suitability for serious ML workloads
+- Faithful mapping of the full control path to FPGA or silicon
+- Hardware-level efficiency, power, or throughput claims
+- Commercial relevance beyond being a credible research/prototype artifact
+
+### Current Limitations
+
+- Execution is binary hardware simulating ternary semantics through Python.
+- Correctness proofs do not imply speed, efficiency, or product readiness.
+- The VM is stack-only and lacks memory-addressed load/store today.
+- The ISA is still a Python object interface rather than a ternary encoding.
+- The current control system relies on Python constructs that would need explicit HDL translation.
 
 ---
 
 ## Milestones
 
-### M0: Foundation ✓
+The roadmap remains useful, but each stage depends on the earlier stages
+actually validating the claims they are meant to test.
 
-Clean repo with proper package structure, tests, documentation.
+### M0: Foundation - complete
+
+This milestone established the software reference stack.
 
 - [x] Python package (`src/trine/`)
-- [x] 161 parametrized pytest cases
-- [x] Separated core library from CLI demo
-- [x] README with architecture overview and examples
-- [x] MIT LICENSE
-- [x] Push to GitHub
+- [x] 163 pytest cases
+- [x] Separated core library from CLI/demo code
+- [x] README and project specification
+- [x] `python -m trine` entrypoint
+- [x] Example VM program
+- [x] GitHub Actions CI
 
 ### M1: Robust ALU + VM
 
-**Goal**: Production-quality instruction set with full test coverage.
+**Goal**: Improve the software model so it is a stronger specification and test bed.
 
 - [ ] Comparison operation (returns trit: less/equal/greater)
-- [ ] Integer division (repeated subtraction or shift-and-subtract)
+- [ ] Integer division
 - [ ] Modular arithmetic
-- [ ] Bitwise ternary operations (MIN, MAX, consensus)
-- [ ] `ROT` instruction (rotate top 3 stack elements)
-- [ ] Memory-addressed load/store (move beyond pure stack)
+- [ ] Ternary MIN / MAX / consensus operations
+- [ ] `ROT` instruction
+- [ ] Memory-addressed load/store
 - [ ] Formal ISA specification document
-- [ ] Benchmarks: operation counts and ALU ticks for standard algorithms
-- [ ] GitHub Actions CI (pytest on Python 3.10, 3.11, 3.12)
+- [ ] Benchmarks focused on operation counts and ALU ticks, not marketing claims
 
 ### M2: Compiler + Assembler
 
-**Goal**: Write programs in a higher-level format, compile to Trine VM.
+**Goal**: Make the VM easier to target while keeping its role as a reference machine.
 
-- [ ] Trine assembly language (human-readable mnemonics, labels, immediates)
-- [ ] Assembler: assembly text → instruction list
-- [ ] Minimal high-level language (Forth-like or C-subset)
-- [ ] Compiler: high-level → assembly → bytecode
-- [ ] Standard library in Trine assembly
+- [ ] Trine assembly language
+- [ ] Assembler: assembly text -> instruction list
+- [ ] Minimal high-level language
+- [ ] Compiler pipeline: high-level -> assembly -> VM program
+- [ ] Standard library in assembly
 
 ### M3: FPGA Proof of Concept
 
-**Goal**: Ternary ALU on physical hardware, verified against software.
+**Goal**: First real hardware validation of the architecture, if the translation holds up.
 
-- [ ] Full adder truth table → Verilog LUT
+This is the first milestone that can test whether Trine maps beyond a Python
+simulation. Success here would be meaningful. Failure here would also be
+meaningful, because it would expose where the software model does not translate
+cleanly to hardware.
+
+- [ ] Full-adder truth table -> Verilog LUT
 - [ ] 7-trit ripple-carry adder
-- [ ] Ternary MAC unit (sign-select mux + adder)
-- [ ] MAC array for parallel inference
+- [ ] Ternary MAC building block
 - [ ] Register file and control sequencer
 - [ ] Verify all 27 full-adder cases against Python `rule_addition`
-- [ ] Benchmark: ops/sec, watts, ops/watt
+- [ ] Measure ops/sec, watts, and ops/watt before making stronger efficiency claims
 - [ ] Target: Lattice iCE40-UP5K or ECP5
 
 ### M4: Ternary Neural Network Inference
 
-**Goal**: Run a pre-trained ternary-quantized model on Trine.
+**Goal**: Research whether the software model and any validated hardware can execute ternary-weight inference correctly.
 
-- [ ] Neuron forward pass as VM program (ternary MAC loop)
-- [ ] Load published ternary weight matrix (ternary ResNet or BERT on MNIST)
-- [ ] Run inference in Python, verify accuracy
-- [ ] Run inference on FPGA, verify identical results
-- [ ] Benchmark: accuracy, latency, energy per inference
-- [ ] Compare against binary CPU/GPU inference
+This milestone is about correctness and benchmarking, not assuming competitive
+performance in advance.
+
+- [ ] Neuron forward pass as a VM or lower-level execution loop
+- [ ] Load a published ternary-weight model or small benchmark network
+- [ ] Run inference in Python and verify correctness
+- [ ] If M3 succeeds, run the same workload on FPGA and verify identical results
+- [ ] Benchmark latency, throughput, and energy before claiming advantage
+- [ ] Compare against binary baselines with the expectation that Python Trine will be slower
 
 ### M5: Ternary-Native Training
 
-**Goal**: Train a neural network from scratch using ternary arithmetic only.
+**Goal**: Research whether ternary-native training ideas converge at all.
 
-- [ ] Ternary forward pass (MAC with {-1, 0, +1} weights)
-- [ ] Ternary backward pass (sign propagation, not gradient descent)
-- [ ] Weight update as ternary state transition (counter + threshold)
-- [ ] Train on MNIST from random ternary initialization
-- [ ] Accuracy convergence curve
-- [ ] Compare against full-precision SGD, post-training quantization, binary NN
-- [ ] Technical report / arxiv preprint
+This is high-risk, high-information work. A negative result would still be
+useful because it would narrow the commercial and technical thesis.
+
+- [ ] Ternary forward pass
+- [ ] Ternary backward/update rule
+- [ ] Weight update as ternary state transition
+- [ ] Small benchmark such as MNIST
+- [ ] Convergence and accuracy study
+- [ ] Compare against binary and quantized baselines
+- [ ] Publish the result if it is technically interesting, positive or negative
 
 ### M6: Custom PCB
 
-**Goal**: Physical ternary computer on a PCB.
+**Goal**: Build a physical platform only if earlier software and FPGA work justify it.
 
-- [ ] PCB with FPGA(s) implementing Trine ISA
-- [ ] Standard interface (USB/UART for host communication)
-- [ ] LED trit indicators
+- [ ] PCB with FPGA(s) implementing a validated Trine execution core
+- [ ] Host communication interface
+- [ ] Visible trit indicators / debug surface
 - [ ] Host-side driver and protocol
-- [ ] Verify against software and FPGA prototypes
-- [ ] Optional: PCIe version for server integration
+- [ ] Verify behavior against software and FPGA reference implementations
 
 ### M7: Product
 
-**Goal**: Ternary AI inference accelerator for existing systems.
+**Goal**: Treat productization as aspirational and contingent, not assumed.
 
-- [ ] PyTorch custom backend (`torch.device('trine')`)
-- [ ] Automatic ternary quantization of trained models
-- [ ] PCIe card with DMA controller
-- [ ] Linux kernel driver
-- [ ] Benchmark suite: latency, throughput, power, cost per inference
-- [ ] Compare against NVIDIA T4, Google Coral, Intel Movidius
+This stage only makes sense if earlier milestones show technical and economic
+evidence that the architecture is worth turning into a product.
+
+- [ ] Candidate runtime/backend integration
+- [ ] Quantization tooling
+- [ ] Hardware packaging and system integration
+- [ ] Driver/runtime support
+- [ ] Benchmark suite for throughput, latency, power, and cost
+- [ ] Comparison against existing accelerators only after earlier validation succeeds
 
 ---
 
-## Design Decisions
+## Design Rationale
 
-### Why balanced ternary?
+### Why Balanced Ternary
 
-- Symmetric representation: no sign bit, no two's complement, no negative zero
-- Negation is trit-flip (O(1) per trit, no carry propagation)
-- Multiplication is natively signed (Booth recoding is free)
-- Three-way comparison is primitive (less/equal/greater in one operation)
-- Neural network weights are naturally {-1, 0, +1}
-- Information density: 1 trit = 1.585 bits per wire
+- No separate sign bit and no negative zero
+- Negation as trit flip
+- Naturally signed multiply/add behavior
+- Native three-way comparison and branching
+- Ternary values `{-1, 0, +1}` are relevant to quantized and ternary-weight ML research
 
-### Why constraint-native architecture?
+These are architectural motivations. They are not proof that current software
+execution is superior to binary implementations.
 
-- The FSM never computes — it only permits legal transitions
-- Operations are injected as descriptors, not hardcoded
-- The substrate is invariant across all operations
-- Bugs manifest as constraint violations, not silent corruption
-- Every operation is independently verifiable via algebraic proofs
+### Why Constraint-Native Separation
 
-### Why a stack-based VM?
+- The FSM never computes values
+- The model never defines legal transition structure
+- Operations can be added by descriptors and rules
+- Violations tend to surface as explicit state/constraint problems
+- The architecture scales conceptually better than a monolithic operation switchboard
 
-- Operation arity maps naturally to stack discipline
-- Zero-address instruction format minimizes instruction size
-- Three-way branch (`BR3`) is one instruction, one pop, three targets
-- Simpler than register machines to implement in hardware
+### Why a Stack VM
 
-### Why zero dependencies?
+- Operation arity maps cleanly to stack discipline
+- `BR3` becomes a compact ternary-native control primitive
+- The design is simpler to reason about than a register machine at this stage
 
-- Portability: runs on Pydroid (Android), CPython, PyPy, anywhere
-- Auditability: the entire system is readable top to bottom
-- Reproducibility: no version conflicts, no install failures
-- The code IS the specification
+That simplicity is useful for a reference machine, even though a future
+hardware-targeted ISA may end up looking different.
+
+### Why Zero Dependencies
+
+- Easy to inspect
+- Easy to run on constrained environments
+- Easy to use as a readable specification artifact
+
+The tradeoff is performance. Pure Python is excellent for clarity and poor for
+making claims about efficient execution.
 
 ---
 
 ## Competitive Landscape
 
-| Entity | What they have | What they lack |
-|--------|---------------|----------------|
-| Huawei | Gate-level patent (CN119652311A), CNTFET research | ISA, software stack, commercial chip |
-| SBTCVM | 9-trit balanced ternary VM with compilers | Algebraic verification, AI focus, hardware path |
-| Triador | 3-trit hardware computer (DG403 switches) | Programmability, scale, AI application |
-| Academic papers | Ternary neural network quantization research | Execution substrate, hardware, native training |
-| **Trine** | **Complete verified software stack, ISA, VM, programs** | **FPGA implementation, training results, hardware** |
+Trine does not exist in a vacuum.
 
-The gap Trine fills: the architecture layer between gate-level hardware and
-application-level AI, with a verified software stack that serves as both
-prototype and formal specification.
+- **SBTCVM** is real prior art in balanced ternary software. It demonstrates that vertical ternary software stacks existed before Trine.
+- **Huawei** represents serious hardware-side work and serious timing risk. A large hardware organization can build a supporting software stack quickly once the hardware is ready.
+- **Academic ternary ML work** shows that ternary-weight and quantized research is active, but that is different from having a reusable execution substrate.
+- **Small hardware projects such as Triador** demonstrate that ternary hardware experimentation is real, even if scope and goals differ.
+
+Trine's current differentiators are narrower and more defensible:
+
+- derivation from first principles through a sequence of constrained architectural steps
+- explicit separation of FSM constraints, model behavior, and operation descriptors
+- algebraic verification encoded in tests
+- `BR3` as a primitive ternary branch in the VM
+
+Those are architectural properties visible in the repo today. Hardware
+leadership, performance leadership, and product viability are not yet proven.
 
 ---
 
 ## Technical Risks
 
-- **Ternary-native training convergence**: No guarantee that discrete ternary
-  weight updates converge as well as continuous gradient descent. Mitigated by
-  existing sign-SGD convergence proofs and Hebbian learning theory.
-- **FPGA performance**: Ternary operations encoded in binary LUTs may not
-  achieve predicted efficiency gains. Mitigated by benchmarking early (M3).
-- **Market timing**: Huawei or others may build a competing software stack.
-  Mitigated by publishing early and establishing prior art.
-- **Single-person execution risk**: Currently a one-person project.
-  Mitigated by clean architecture, comprehensive tests, and open source.
+- **Performance risk**: Python overhead dominates execution cost. The current VM is not suitable for serious ML workloads.
+- **Translation risk**: the control path must be re-expressed in HDL; Python dictionaries, callbacks, and dynamic binding do not carry over directly.
+- **ISA maturity risk**: current instructions are Python-level objects, not ternary-encoded hardware instructions.
+- **Memory-model gap**: stack-only execution is insufficient for many realistic workloads.
+- **Training-risk**: ternary-native update rules may fail to converge or may underperform badly.
+- **Hardware-risk**: FPGA implementations may not show efficiency gains even if semantic correctness is preserved.
+- **Timing risk**: larger organizations, including Huawei or other hardware teams, may close the software gap quickly once they prioritize it.
+- **Execution risk**: this remains a small, single-author project.
+
+---
+
+## Interpreting Future Claims
+
+Stronger claims should only be made after the corresponding validation exists:
+
+- **Semantic claims** are already supported by the current tests.
+- **Performance claims** require compiled or hardware implementations plus benchmarks.
+- **ML claims** require actual inference/training experiments.
+- **Hardware claims** require FPGA or silicon behavior that matches the software model.
+- **Commercial claims** require evidence beyond architectural cleanliness and novelty.
 
 ---
 
@@ -257,6 +326,6 @@ MIT
 
 ## Author
 
-Dylan Griffin · Digital Degenerates · Kentucky, USA
+Dylan Griffin - Digital Degenerates - Kentucky, USA
 
-Built from first principles. Proven algebraically. Runs on a phone.
+Built from first principles. Verified in software. Not yet validated in hardware.
