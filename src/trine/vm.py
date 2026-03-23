@@ -3,8 +3,9 @@
 Harvard architecture: separate program (instruction list) and data (stack).
 Primitive ALU work dispatches to TernaryMachine. Composite VM instructions
 either compose primitive machine runs or use direct host-side helpers and are
-tracked separately from primitive ALU ticks. Three-way branching (BR3) is a
-primitive instruction.
+tracked separately from primitive ALU ticks. The VM also provides sparse
+default-zero word-addressed memory plus a ternary-native compare result for
+branching. Three-way branching (BR3) is a primitive instruction.
 """
 
 from __future__ import annotations
@@ -13,7 +14,7 @@ from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
 from .trit import Trit
 from .formatting import format_trits, int_to_trits
-from .machine import TernaryMachine, ternary_abs, ternary_sub, ternary_mul
+from .machine import TernaryMachine, ternary_abs, ternary_sub, ternary_cmp, ternary_mul
 from .operations import shift_left, shift_right, sign
 
 
@@ -37,7 +38,11 @@ class Op:
     # Binary ALU
     ADD   = "ADD"
     SUB   = "SUB"
+    CMP   = "CMP"
     MUL   = "MUL"
+    # Memory
+    LOAD  = "LOAD"
+    STORE = "STORE"
     # Control flow
     JMP   = "JMP"
     JN    = "JN"
@@ -76,6 +81,7 @@ class TernaryVM:
         self.halted: bool = False
         self.trace: List[str] = []
         self.output: List[str] = []
+        self.memory: Dict[int, int] = {}
         self.step_count: int = 0
         self.alu_ticks: int = 0
         self.composite_ops: int = 0
@@ -87,6 +93,7 @@ class TernaryVM:
         self.halted = False
         self.trace = []
         self.output = []
+        self.memory = {}
         self.step_count = 0
         self.alu_ticks = 0
         self.composite_ops = 0
@@ -97,6 +104,15 @@ class TernaryVM:
 
     def _push(self, value: int) -> None:
         self.stack.append(value)
+
+    def _load_mem(self, address: int) -> int:
+        return self.memory.get(address, 0)
+
+    def _store_mem(self, address: int, value: int) -> None:
+        if value == 0:
+            self.memory.pop(address, None)
+        else:
+            self.memory[address] = value
 
     def _pop(self) -> int:
         if not self.stack:
@@ -194,10 +210,23 @@ class TernaryVM:
             self.composite_ops += 1
             b, a = self._pop(), self._pop()
             self._push(ternary_sub(a, b, tick_sink=self._record_alu_ticks))
+        elif op == Op.CMP:
+            self.composite_ops += 1
+            b, a = self._pop(), self._pop()
+            self._push(ternary_cmp(a, b, tick_sink=self._record_alu_ticks))
         elif op == Op.MUL:
             self.composite_ops += 1
             b, a = self._pop(), self._pop()
             self._push(ternary_mul(a, b, tick_sink=self._record_alu_ticks))
+
+        # Memory
+        elif op == Op.LOAD:
+            address = self._pop()
+            self._push(self._load_mem(address))
+        elif op == Op.STORE:
+            value = self._pop()
+            address = self._pop()
+            self._store_mem(address, value)
 
         # Control flow
         elif op == Op.JMP:

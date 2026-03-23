@@ -37,13 +37,14 @@ Trine is currently:
 - a specification aid for future HDL or lower-level implementations
 - a test oracle for checking ternary behavior against algebraic properties
 - a demonstration of a constraint-separated architecture with operation injection
+- a minimal executable assembler for the current line-oriented VM ISA text, including labels
 
 Trine is not currently:
 
 - native ternary execution
 - a performant ML inference engine
 - a hardware-ready ISA with fixed ternary instruction encoding
-- a complete machine with random-access memory and data structures
+- a hardware-ready machine with rich memory and data structures
 
 The distinction matters. Every current trit, ALU tick, and VM instruction is
 executed by Python on conventional binary hardware.
@@ -55,10 +56,12 @@ executed by Python on conventional binary hardware.
 Trine is layered. Each layer depends only on the layer below it.
 
 ```
-Programs          -> factorial, fibonacci, loops, branching demos
+Programs          -> factorial, fibonacci, loops, branching, memory demos
+Assembler         -> line-oriented `.trine` text -> instruction list with labels
 VM                -> stack, PC, opcodes, BR3
+Memory            -> LOAD, STORE, sparse default-zero word cells
 Primitive ALU     -> increment, decrement, negate, add
-Composite helpers -> abs, sub, mul, shifts, sign
+Composite helpers -> abs, sub, cmp, mul, shifts, sign
 Operations        -> injectable descriptors
 FSM               -> MiniFSM tick cycle
 Model             -> tape, head, carry, trace
@@ -66,9 +69,11 @@ Primitives        -> Trit, Tape, formatting, conversion
 ```
 
 Only `increment`, `decrement`, `negate`, and `add` currently execute as
-primitive tape/FSM operations. `abs`, `sub`, `mul`, `shift_left`,
+primitive tape/FSM operations. `abs`, `sub`, `cmp`, `mul`, `shift_left`,
 `shift_right`, and `sign` are composite helpers built either from those
-primitives or from direct host-side logic.
+primitives or from direct host-side logic. `LOAD` and `STORE` operate on sparse
+word-addressed VM memory with default-zero reads and write-zero-deletes
+semantics.
 
 ### Core Principles
 
@@ -94,12 +99,17 @@ structural property of the codebase, not a speculative future claim.
 - Injectable operation descriptors
 - Primitive unary operations: increment, decrement, negate
 - Primitive binary operation: addition with carry and second tape
-- Composite helpers: abs, sign, shift-left, shift-right, subtraction, multiplication
-- `TernaryVM` with 22 opcodes including `BR3`
+- Composite helpers: abs, sign, shift-left, shift-right, subtraction, comparison, multiplication
+- Sparse word-addressed VM memory with `LOAD` / `STORE`
+- `TernaryVM` with 25 opcodes including `BR3`
+- Minimal assembler: line-oriented text with labels -> `Instruction` list
 - `python -m trine` entrypoint and example VM program
+- Runnable assembly example in `examples/factorial.trine`
+- Runnable label-based assembly example in `examples/count_to_five.trine`
 - GitHub Actions CI running tests and a module smoke test
-- 167 pytest cases covering primitives, operations, algebraic properties, and VM programs
+- 189 pytest cases covering primitives, operations, algebraic properties, memory, assembly, labels, and VM programs
 - VM metrics: `alu_ticks` for primitive machine ticks and `composite_ops` for host-side/composed VM instructions
+- A small ISA / assembly-text note in `TRINE_ISA.md`
 
 ### What Is Proven
 
@@ -120,7 +130,7 @@ structural property of the codebase, not a speculative future claim.
 - Execution is binary hardware simulating ternary semantics through Python.
 - Correctness proofs do not imply speed, efficiency, or product readiness.
 - Several VM instructions are composite host-side helpers rather than single primitive tape/FSM operations.
-- The VM is stack-only and lacks memory-addressed load/store today.
+- The VM memory model is sparse host-side word storage, not a hardware-ready memory subsystem.
 - The ISA is still a Python object interface rather than a ternary encoding.
 - The current control system relies on Python constructs that would need explicit HDL translation.
 
@@ -128,9 +138,9 @@ structural property of the codebase, not a speculative future claim.
 
 ## Near-Term Priorities
 
-1. Memory-addressed load/store so the VM is a stronger machine model instead of only a stack demonstrator.
-2. Comparison returning a trit (`-1`, `0`, `+1`) so control flow and future load/store code can branch without ad hoc host comparisons.
-3. A small ISA and assembly-text specification so later assembler, compiler, and HDL work targets stable semantics instead of inferred behavior.
+1. Add the remaining M1 arithmetic surface: division, modular arithmetic, MIN / MAX / consensus, and `ROT`.
+2. Expand assembler ergonomics beyond labels: constants, data directives, and possibly macros.
+3. Expand memory-using example programs and benchmarks so the VM is exercised as a machine model, not only as an arithmetic demonstrator.
 
 ---
 
@@ -144,7 +154,7 @@ actually validating the claims they are meant to test.
 This milestone established the software reference stack.
 
 - [x] Python package (`src/trine/`)
-- [x] 167 pytest cases
+- [x] 189 pytest cases
 - [x] Separated core library from CLI/demo code
 - [x] README and project specification
 - [x] `python -m trine` entrypoint
@@ -155,10 +165,10 @@ This milestone established the software reference stack.
 
 **Goal**: Improve the software model so it is a stronger specification and test bed.
 
-- [ ] Memory-addressed load/store
-- [ ] Comparison operation (returns trit: less/equal/greater)
-- [ ] Small ISA specification document
-- [ ] Minimal assembly syntax specification
+- [x] Memory-addressed load/store
+- [x] Comparison operation (returns trit: less/equal/greater)
+- [x] Small ISA specification document
+- [x] Minimal assembly syntax specification
 - [ ] Integer division
 - [ ] Modular arithmetic
 - [ ] Ternary MIN / MAX / consensus operations
@@ -169,8 +179,8 @@ This milestone established the software reference stack.
 
 **Goal**: Make the VM easier to target while keeping its role as a reference machine.
 
-- [ ] Trine assembly language
-- [ ] Assembler: assembly text -> instruction list
+- [x] Trine assembly language
+- [x] Assembler: assembly text -> instruction list
 - [ ] Minimal high-level language
 - [ ] Compiler pipeline: high-level -> assembly -> VM program
 - [ ] Standard library in assembly
@@ -314,7 +324,7 @@ leadership, performance leadership, and product viability are not yet proven.
 - **Performance risk**: Python overhead dominates execution cost. The current VM is not suitable for serious ML workloads.
 - **Translation risk**: the control path must be re-expressed in HDL; Python dictionaries, callbacks, and dynamic binding do not carry over directly.
 - **ISA maturity risk**: current instructions are Python-level objects, not ternary-encoded hardware instructions.
-- **Memory-model gap**: stack-only execution is insufficient for many realistic workloads.
+- **Memory-model gap**: sparse word-addressed memory exists now, but richer data structures, call frames, and hardware mapping are still unresolved.
 - **Training-risk**: ternary-native update rules may fail to converge or may underperform badly.
 - **Hardware-risk**: FPGA implementations may not show efficiency gains even if semantic correctness is preserved.
 - **Timing risk**: larger organizations, including Huawei or other hardware teams, may close the software gap quickly once they prioritize it.

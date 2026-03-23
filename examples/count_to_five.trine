@@ -1,0 +1,13 @@
+; Count 1 to 5 using assembler labels
+PUSH 0
+loop:
+INC
+DUP
+PRINT
+DUP
+PUSH 5
+SUB
+JZ done
+JMP loop
+done:
+HALT

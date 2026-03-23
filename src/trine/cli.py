@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 
+from .assembler import assemble_file
 from .formatting import format_trits, int_to_trits
 from .machine import TernaryMachine, ternary_abs
 from .operations import shift_left, shift_right, sign
@@ -103,6 +105,54 @@ def demo() -> None:
     print(
         f"  vm_steps={vm.step_count}  alu_ticks={vm.alu_ticks}  "
         f"composite_ops={vm.composite_ops}"
+    )
+
+    # Memory round-trip
+    print("\n  -- Memory round-trip: mem[4] = 13 --")
+    prog_mem = [
+        Instruction(Op.PUSH, 4), Instruction(Op.PUSH, 13), Instruction(Op.STORE),
+        Instruction(Op.PUSH, 4), Instruction(Op.LOAD),
+        Instruction(Op.PRINT), Instruction(Op.HALT),
+    ]
+    vm_mem = TernaryVM(prog_mem).run()
+    for line in vm_mem.output:
+        print(f"    -> {line}")
+    print(f"  memory={vm_mem.memory}")
+
+    # Compare
+    print("\n  -- Compare: cmp(2, 5) -> -1 --")
+    prog_cmp = [
+        Instruction(Op.PUSH, 2), Instruction(Op.PUSH, 5),
+        Instruction(Op.CMP), Instruction(Op.PRINT), Instruction(Op.HALT),
+    ]
+    vm_cmp = TernaryVM(prog_cmp).run()
+    for line in vm_cmp.output:
+        print(f"    -> {line}")
+    print(
+        f"  vm_steps={vm_cmp.step_count}  alu_ticks={vm_cmp.alu_ticks}  "
+        f"composite_ops={vm_cmp.composite_ops}"
+    )
+
+    # Assembly example
+    print("\n  -- Assembly: factorial.trine --")
+    asm_program = assemble_file(Path(__file__).resolve().parents[2] / "examples" / "factorial.trine")
+    vm_asm = TernaryVM(asm_program).run()
+    for line in vm_asm.output:
+        print(f"    -> {line}")
+    print(
+        f"  vm_steps={vm_asm.step_count}  alu_ticks={vm_asm.alu_ticks}  "
+        f"composite_ops={vm_asm.composite_ops}"
+    )
+
+    # Label-based assembly example
+    print("\n  -- Assembly with labels: count_to_five.trine --")
+    asm_loop = assemble_file(Path(__file__).resolve().parents[2] / "examples" / "count_to_five.trine")
+    vm_loop = TernaryVM(asm_loop).run()
+    for line in vm_loop.output:
+        print(f"    -> {line}")
+    print(
+        f"  vm_steps={vm_loop.step_count}  alu_ticks={vm_loop.alu_ticks}  "
+        f"composite_ops={vm_loop.composite_ops}"
     )
 
     # Fibonacci

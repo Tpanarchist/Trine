@@ -1,11 +1,14 @@
 """Trine test suite — algebraic proofs and correctness verification."""
 
+from pathlib import Path
+
 import pytest
 from trine import (
     Trit, coerce_trits, Tape,
     int_to_trits, trits_to_int, format_trits,
-    TernaryMachine, ternary_abs, ternary_sub, ternary_mul,
+    TernaryMachine, ternary_abs, ternary_sub, ternary_cmp, ternary_mul,
     TernaryVM, Instruction, Op,
+    AssemblerError, assemble, assemble_file,
     shift_left, shift_right, sign,
 )
 
@@ -151,6 +154,12 @@ class TestComposite:
     ])
     def test_mul(self, a, b, expected):
         assert ternary_mul(a, b) == expected
+
+    @pytest.mark.parametrize("a,b,expected", [
+        (1, 2, -1), (5, 5, 0), (13, -4, 1), (-7, -2, -1),
+    ])
+    def test_cmp(self, a, b, expected):
+        assert ternary_cmp(a, b) == expected
 
     @pytest.mark.parametrize("value,expected", [
         (0, 0), (1, 3), (-1, -3), (13, 39),
@@ -350,6 +359,45 @@ class TestVM:
         vm = TernaryVM(prog).run()
         assert int(vm.output[0].split()[0]) == 42
 
+    def test_memory_load_default_zero(self):
+        prog = [
+            Instruction(Op.PUSH, 7),
+            Instruction(Op.LOAD), Instruction(Op.PRINT), Instruction(Op.HALT),
+        ]
+        vm = TernaryVM(prog).run()
+        assert int(vm.output[0].split()[0]) == 0
+        assert vm.memory == {}
+
+    def test_memory_store_and_load_round_trip(self):
+        prog = [
+            Instruction(Op.PUSH, 4), Instruction(Op.PUSH, 13), Instruction(Op.STORE),
+            Instruction(Op.PUSH, 4), Instruction(Op.LOAD),
+            Instruction(Op.PRINT), Instruction(Op.HALT),
+        ]
+        vm = TernaryVM(prog).run()
+        assert int(vm.output[0].split()[0]) == 13
+        assert vm.memory == {4: 13}
+
+    def test_memory_store_zero_deletes_cell(self):
+        prog = [
+            Instruction(Op.PUSH, 4), Instruction(Op.PUSH, 13), Instruction(Op.STORE),
+            Instruction(Op.PUSH, 4), Instruction(Op.PUSH, 0), Instruction(Op.STORE),
+            Instruction(Op.PUSH, 4), Instruction(Op.LOAD),
+            Instruction(Op.PRINT), Instruction(Op.HALT),
+        ]
+        vm = TernaryVM(prog).run()
+        assert int(vm.output[0].split()[0]) == 0
+        assert vm.memory == {}
+
+    def test_compare_returns_balanced_trit(self):
+        for a, b, expected in [(1, 2, -1), (5, 5, 0), (13, -4, 1)]:
+            prog = [
+                Instruction(Op.PUSH, a), Instruction(Op.PUSH, b),
+                Instruction(Op.CMP), Instruction(Op.PRINT), Instruction(Op.HALT),
+            ]
+            vm = TernaryVM(prog).run()
+            assert int(vm.output[0].split()[0]) == expected
+
     def test_mul_tracks_composite_ops_and_primitive_ticks(self):
         prog = [
             Instruction(Op.PUSH, 2), Instruction(Op.PUSH, 3),
@@ -357,6 +405,16 @@ class TestVM:
         ]
         vm = TernaryVM(prog).run()
         assert int(vm.output[0].split()[0]) == 6
+        assert vm.composite_ops == 1
+        assert vm.alu_ticks > 0
+
+    def test_cmp_tracks_composite_ops_and_primitive_ticks(self):
+        prog = [
+            Instruction(Op.PUSH, 2), Instruction(Op.PUSH, 3),
+            Instruction(Op.CMP), Instruction(Op.PRINT), Instruction(Op.HALT),
+        ]
+        vm = TernaryVM(prog).run()
+        assert int(vm.output[0].split()[0]) == -1
         assert vm.composite_ops == 1
         assert vm.alu_ticks > 0
 
@@ -369,3 +427,140 @@ class TestVM:
         assert int(vm.output[0].split()[0]) == 39
         assert vm.composite_ops == 1
         assert vm.alu_ticks == 0
+
+
+class TestAssembler:
+    def test_assemble_simple_program(self):
+        program = assemble(
+            """
+            ; comment
+            PUSH 4
+            PUSH 13
+            STORE
+            PUSH 4
+            LOAD
+            PRINT
+            HALT
+            """
+        )
+        assert program == [
+            Instruction(Op.PUSH, 4),
+            Instruction(Op.PUSH, 13),
+            Instruction(Op.STORE),
+            Instruction(Op.PUSH, 4),
+            Instruction(Op.LOAD),
+            Instruction(Op.PRINT),
+            Instruction(Op.HALT),
+        ]
+
+    def test_assemble_br3_targets(self):
+        program = assemble(
+            """
+            PUSH -7
+            SGN
+            BR3 3, 5, 7
+            HALT
+            """
+        )
+        assert program[2] == Instruction(Op.BR3, (3, 5, 7))
+
+    def test_assemble_resolves_jump_label(self):
+        program = assemble(
+            """
+            JMP done
+            PUSH 99
+            done: HALT
+            """
+        )
+        assert program[0] == Instruction(Op.JMP, 2)
+
+    def test_assemble_resolves_br3_labels(self):
+        program = assemble(
+            """
+            PUSH -7
+            SGN
+            BR3 neg_case, zero_case, pos_case
+            neg_case: PUSH -1
+            JMP done
+            zero_case: PUSH 0
+            JMP done
+            pos_case: PUSH 1
+            done: PRINT
+            HALT
+            """
+        )
+        assert program[2] == Instruction(Op.BR3, (3, 5, 7))
+
+    def test_assemble_rejects_unknown_opcode(self):
+        with pytest.raises(AssemblerError, match="unknown opcode"):
+            assemble("NOPE")
+
+    def test_assemble_rejects_missing_operand(self):
+        with pytest.raises(AssemblerError, match="requires an integer operand"):
+            assemble("PUSH")
+
+    def test_assemble_rejects_extra_operand(self):
+        with pytest.raises(AssemblerError, match="takes no operand"):
+            assemble("HALT 1")
+
+    def test_assemble_rejects_invalid_br3_operand(self):
+        with pytest.raises(AssemblerError, match="three comma-separated targets"):
+            assemble("BR3 1, 2")
+
+    def test_assemble_rejects_duplicate_label(self):
+        with pytest.raises(AssemblerError, match="duplicate label"):
+            assemble(
+                """
+                loop: PUSH 1
+                loop: HALT
+                """
+            )
+
+    def test_assemble_rejects_unknown_target_label(self):
+        with pytest.raises(AssemblerError, match="requires a valid target"):
+            assemble("JMP missing_label")
+
+    def test_assembled_program_executes(self):
+        program = assemble(
+            """
+            PUSH 1
+            PUSH 2
+            MUL
+            PUSH 3
+            MUL
+            PUSH 4
+            MUL
+            PUSH 5
+            MUL
+            PRINT
+            HALT
+            """
+        )
+        vm = TernaryVM(program).run()
+        assert int(vm.output[0].split()[0]) == 120
+
+    def test_labeled_program_executes(self):
+        program = assemble(
+            """
+            PUSH 0
+            loop:
+            INC
+            DUP
+            PRINT
+            DUP
+            PUSH 5
+            SUB
+            JZ done
+            JMP loop
+            done:
+            HALT
+            """
+        )
+        vm = TernaryVM(program).run()
+        assert [int(o.split()[0]) for o in vm.output] == [1, 2, 3, 4, 5]
+
+    def test_assemble_file_example(self):
+        path = Path(__file__).resolve().parents[1] / "examples" / "factorial.trine"
+        program = assemble_file(path)
+        vm = TernaryVM(program).run()
+        assert int(vm.output[0].split()[0]) == 120

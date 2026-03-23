@@ -239,6 +239,11 @@ def ternary_sub(a: int, b: int, *, tick_sink: TickSink = None) -> int:
     return result
 
 
+def ternary_cmp(a: int, b: int, *, tick_sink: TickSink = None) -> int:
+    """Comparison as a balanced trit: -1 if a<b, 0 if a==b, +1 if a>b."""
+    return sign(ternary_sub(a, b, tick_sink=tick_sink))
+
+
 def ternary_mul(a: int, b: int, *, tick_sink: TickSink = None) -> int:
     """Multiplication via shift-and-add with trit dispatch."""
     if b == 0:

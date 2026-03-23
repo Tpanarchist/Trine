@@ -8,9 +8,10 @@ from .operations import (
     rule_increment, rule_decrement, rule_negate, rule_addition,
     shift_left, shift_right, sign,
 )
+from .assembler import AssemblerError, assemble, assemble_file, assemble_lines
 from .fsm import MiniFSM, MachineError
 from .model import TernaryMachineModel
-from .machine import TernaryMachine, ternary_abs, ternary_sub, ternary_mul
+from .machine import TernaryMachine, ternary_abs, ternary_sub, ternary_cmp, ternary_mul
 from .vm import TernaryVM, Instruction, Op, VMError
 
 __all__ = [
@@ -20,9 +21,10 @@ __all__ = [
     "OpDescriptor", "OPERATIONS",
     "rule_increment", "rule_decrement", "rule_negate", "rule_addition",
     "shift_left", "shift_right", "sign",
+    "AssemblerError", "assemble", "assemble_file", "assemble_lines",
     "MiniFSM", "MachineError",
     "TernaryMachineModel",
-    "TernaryMachine", "ternary_abs", "ternary_sub", "ternary_mul",
+    "TernaryMachine", "ternary_abs", "ternary_sub", "ternary_cmp", "ternary_mul",
     "TernaryVM", "Instruction", "Op", "VMError",
 ]
 
