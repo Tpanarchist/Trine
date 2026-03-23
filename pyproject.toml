@@ -28,6 +28,7 @@ test = ["pytest>=8.0,<9.0"]
 
 [project.scripts]
 trine = "trine.cli:main"
+trine-bench = "trine.benchmarks:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

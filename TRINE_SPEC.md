@@ -108,8 +108,9 @@ structural property of the codebase, not a speculative future claim.
 - `python -m trine` entrypoint and example VM program
 - Runnable assembly example in `examples/factorial.trine`
 - Runnable label-based assembly example in `examples/count_to_five.trine`
+- Logical benchmark note in `BENCHMARKS.md`
 - GitHub Actions CI running tests and a module smoke test
-- 277 pytest cases covering primitives, operations, algebraic properties, memory, assembly, labels, stack rotation, and VM programs
+- 280 pytest cases covering primitives, operations, algebraic properties, memory, assembly, labels, stack rotation, VM programs, and benchmark harness behavior
 - VM metrics: `alu_ticks` for primitive machine ticks and `composite_ops` for host-side/composed VM instructions
 - A small ISA / assembly-text note in `TRINE_ISA.md`
 
@@ -141,8 +142,8 @@ structural property of the codebase, not a speculative future claim.
 ## Near-Term Priorities
 
 1. Expand assembler ergonomics beyond labels: constants, data directives, and possibly macros.
-2. Expand memory-using example programs and benchmarks so the VM is exercised as a machine model, not only as an arithmetic demonstrator.
-3. Benchmark operation counts and ALU ticks now that the M1 arithmetic surface is in place.
+2. Expand memory-using example programs so the VM is exercised as a machine model, not only as an arithmetic demonstrator.
+3. Add a small standard-library layer in assembly once assembler ergonomics improve.
 
 ---
 
@@ -156,14 +157,14 @@ actually validating the claims they are meant to test.
 This milestone established the software reference stack.
 
 - [x] Python package (`src/trine/`)
-- [x] 277 pytest cases
+- [x] 280 pytest cases
 - [x] Separated core library from CLI/demo code
 - [x] README and project specification
 - [x] `python -m trine` entrypoint
 - [x] Example VM program
 - [x] GitHub Actions CI
 
-### M1: Robust ALU + VM
+### M1: Robust ALU + VM - complete
 
 **Goal**: Improve the software model so it is a stronger specification and test bed.
 
@@ -175,7 +176,7 @@ This milestone established the software reference stack.
 - [x] Modular arithmetic
 - [x] Ternary MIN / MAX / consensus operations
 - [x] `ROT` instruction
-- [ ] Benchmarks focused on operation counts and ALU ticks, not marketing claims
+- [x] Benchmarks focused on operation counts and ALU ticks, not marketing claims
 
 ### M2: Compiler + Assembler
 

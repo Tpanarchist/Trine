@@ -21,6 +21,7 @@ Trine currently demonstrates:
 - `BR3` as a primitive ternary branch in the VM
 - A runnable assembly-text path from `.trine` source to VM program, including labels
 - A fuller stack-machine surface including `ROT`, `MIN`, `MAX`, `CONS`, `DIV`, and `MOD`
+- A reproducible logical benchmark pass over operation and program metrics
 - Algebraic and program-level correctness checks in an automated test suite
 
 Trine does not currently demonstrate:
@@ -105,7 +106,7 @@ Python ternary simulator is faster or more useful than binary implementations.
 
 ## Verification
 
-The test suite currently covers 277 cases across:
+The test suite currently covers 280 cases across:
 
 - Trit and tape primitives
 - Balanced ternary conversion
@@ -148,6 +149,12 @@ python3.12 -m venv .venv312
 
 # Run the label-based assembly example
 .venv312/bin/python examples/count_to_five_asm.py
+
+# Run the benchmark note generator
+.venv312/bin/python -m trine.benchmarks
+
+# Or via the installed script entrypoint
+.venv312/bin/trine-bench
 ```
 
 Requires Python 3.10+. No external runtime dependencies are required for the core library.
@@ -165,7 +172,8 @@ Current strengths:
 - Extensible operation injection model
 - Ternary-native `BR3`, `CMP`, `MIN`, `MAX`, `CONS`, `DIV`, `MOD`, `ROT`, and sparse word-addressed `LOAD`/`STORE`
 - Minimal executable assembler with label resolution for the documented ISA text
-- 277 passing tests
+- Logical benchmark note covering `vm_steps`, `alu_ticks`, and `composite_ops`
+- 280 passing tests
 - CI and module entrypoint support
 
 Current limits:
@@ -176,7 +184,8 @@ Current limits:
 - The VM memory model is sparse host-side state, not a hardware-ready memory subsystem
 - The ISA is a Python-level interface, not a hardware-ready ternary encoding
 
-See [TRINE_SPEC.md](TRINE_SPEC.md) for the longer roadmap and
+See [BENCHMARKS.md](BENCHMARKS.md) for the current benchmark note,
+[TRINE_SPEC.md](TRINE_SPEC.md) for the longer roadmap, and
 [TRINE_ISA.md](TRINE_ISA.md) for the current instruction and assembly-text note.
 
 ## License

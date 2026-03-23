@@ -12,6 +12,11 @@ from trine import (
     AssemblerError, assemble, assemble_file,
     shift_left, shift_right, sign,
 )
+from trine.benchmarks import (
+    benchmark_division_scaling,
+    benchmark_operations,
+    render_benchmark_report,
+)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -858,3 +863,20 @@ class TestAssembler:
         program = assemble_file(path)
         vm = TernaryVM(program).run()
         assert int(vm.output[0].split()[0]) == 120
+
+
+class TestBenchmarks:
+    def test_operation_benchmarks_cover_div_mod(self):
+        labels = {row.name for row in benchmark_operations()}
+        assert {"DIV -7 3", "MOD -7 3"} <= labels
+
+    def test_division_scaling_benchmarks_increase_with_quotient(self):
+        rows = benchmark_division_scaling(dividends=(3, 9, 27), divisor=3)
+        assert [row.quotient for row in rows] == [1, 3, 9]
+        assert rows[0].alu_ticks < rows[1].alu_ticks < rows[2].alu_ticks
+
+    def test_render_benchmark_report_mentions_division_growth(self):
+        report = render_benchmark_report()
+        assert "Operation Snapshot" in report
+        assert "Program Snapshot" in report
+        assert "DIV 81 3" in report
