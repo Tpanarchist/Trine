@@ -10,7 +10,8 @@ branching. Three-way branching (BR3) is a primitive instruction.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple
+from dataclasses import dataclass
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
 
 from .trit import Trit
 from .formatting import format_trits, int_to_trits
@@ -79,6 +80,14 @@ class Instruction(NamedTuple):
         return f"{self.op} {self.operand}" if self.operand is not None else self.op
 
 
+@dataclass(frozen=True)
+class ProgramImage:
+    """Executable VM image with instructions plus initial memory contents."""
+
+    instructions: List[Instruction]
+    initial_memory: Dict[int, int]
+
+
 class VMError(Exception):
     pass
 
@@ -91,8 +100,19 @@ class TernaryVM:
     helpers or compositions over those primitive runs.
     """
 
-    def __init__(self, program: List[Instruction], max_steps: int = 10000) -> None:
-        self.program = program
+    def __init__(
+        self,
+        program: Union[List[Instruction], ProgramImage],
+        max_steps: int = 10000,
+    ) -> None:
+        if isinstance(program, ProgramImage):
+            self.program = list(program.instructions)
+            self._initial_memory = {
+                addr: value for addr, value in program.initial_memory.items() if value != 0
+            }
+        else:
+            self.program = list(program)
+            self._initial_memory: Dict[int, int] = {}
         self.stack: List[int] = []
         self.pc: int = 0
         self.halted: bool = False
@@ -103,6 +123,7 @@ class TernaryVM:
         self.alu_ticks: int = 0
         self.composite_ops: int = 0
         self.max_steps = max_steps
+        self.reset()
 
     def reset(self) -> TernaryVM:
         self.stack = []
@@ -110,7 +131,7 @@ class TernaryVM:
         self.halted = False
         self.trace = []
         self.output = []
-        self.memory = {}
+        self.memory = dict(self._initial_memory)
         self.step_count = 0
         self.alu_ticks = 0
         self.composite_ops = 0

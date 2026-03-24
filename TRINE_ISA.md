@@ -11,15 +11,28 @@ It is a software reference, not a ternary hardware encoding.
 - Memory is sparse, word-addressed, and default-zero.
 - `PRINT` renders integers alongside balanced ternary formatting.
 - Jumps may target raw numeric instruction indexes or labels.
+- The assembler can emit either a lowered instruction list or a `ProgramImage` with initialized memory.
 - Primitive tape/FSM-executed arithmetic is limited to `INC`, `DEC`, `NEG`, and `ADD`.
 - `ABS`, `SUB`, `CMP`, `MIN`, `MAX`, `CONS`, `DIV`, `MOD`, `MUL`, `SHL`, `SHR`, and `SGN` are composite helpers over the primitive substrate or host-side logic.
 
 ## Assembly Text
 
-Current reference syntax is line-oriented:
+Current reference instruction syntax is line-oriented:
 
 ```text
 OPCODE [operand]
+```
+
+Current assembler directives:
+
+```text
+DEF NAME value
+INCLUDE "relative/path.trine"
+ORG address
+label: DATA value, value, ...
+MACRO name arg1 arg2 ...
+...
+ENDMACRO
 ```
 
 Rules:
@@ -29,9 +42,15 @@ Rules:
 - `;` starts a comment.
 - Labels use `name:` on their own line or before an instruction.
 - Integer operands are decimal.
+- `DEF` introduces integer constants.
+- `DATA` allocates sparse memory cells and binds its label to the base address.
+- `ORG` moves the data-allocation cursor; it does not change code addresses.
+- `INCLUDE` resolves relative to the including file, or to an explicit `base_dir` for string-based assembly.
+- Macros use `{arg}` placeholders and `@local` labels for expansion-local labels.
 - `BR3` takes three comma-separated targets in `neg,zero,pos` order.
-- The bundled assembler consumes this exact format today.
-- Labels resolve to numeric instruction indexes during assembly.
+- `assemble*` lowers `DATA` to a deterministic startup prologue of `PUSH` / `STORE` instructions.
+- `assemble_image*` preserves the code stream and returns a `ProgramImage` with `initial_memory`.
+- Code labels resolve to instruction indexes; data labels resolve to memory addresses.
 
 Example:
 
@@ -59,6 +78,17 @@ SUB
 JZ done
 JMP loop
 done:
+HALT
+```
+
+Data example:
+
+```text
+DEF BASE 100
+ORG BASE
+table: DATA 1, 0, 1, 2, 0, 2
+PUSH table
+PRINT
 HALT
 ```
 
@@ -141,5 +171,5 @@ Memory rules:
 ## Notes for Future Assembler Work
 
 - `BR3` should preserve `neg,zero,pos` target order.
-- Data directives, constants, and macros are still future work.
-- The current text form is intentionally minimal so the assembler can stay close to the existing VM.
+- The current text form is still intentionally small; there are no strings, richer I/O directives, or linker-style passes yet.
+- The next unresolved assembler question is subroutine support: convention over existing ops versus explicit `CALL` / `RET`.

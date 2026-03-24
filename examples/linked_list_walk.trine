@@ -1,0 +1,29 @@
+INCLUDE "lib/runtime.trine"
+INCLUDE "lib/memory.trine"
+INCLUDE "lib/control.trine"
+
+ORG 100
+node_a: DATA 4, 120
+ORG 120
+node_b: DATA -1, 150
+ORG 150
+node_c: DATA 7, 0
+
+PUSH node_a
+STORE_CELL RT_PTR
+
+loop:
+JUMP_IF_EQ_CELL RT_PTR 0 done
+
+LOAD_CELL RT_PTR
+LOAD
+PRINT
+
+LOAD_CELL RT_PTR
+INC
+LOAD
+STORE_CELL RT_PTR
+JMP loop
+
+done:
+HALT

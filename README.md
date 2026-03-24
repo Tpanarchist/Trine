@@ -2,8 +2,9 @@
 
 Trine is a pure-Python reference implementation of balanced ternary computation.
 It models trits, a sparse tape, a constraint-separated ALU, a small
-stored-program VM with a ternary-native three-way branch, and a minimal
-line-oriented assembler for the current VM ISA.
+stored-program VM with a ternary-native three-way branch, and a line-oriented
+assembler for the current VM ISA with constants, data directives, macros,
+includes, and a `ProgramImage` path for initialized memory.
 
 The project is real in the sense that it computes correct balanced ternary
 results and verifies algebraic properties of those operations. It is not native
@@ -19,8 +20,10 @@ Trine currently demonstrates:
 - An extensible ALU surface built from injectable operation descriptors
 - A clear split between primitive tape/FSM operations and composite helper operations
 - `BR3` as a primitive ternary branch in the VM
-- A runnable assembly-text path from `.trine` source to VM program, including labels
+- A runnable assembly-text path from `.trine` source to VM program, including labels, `DEF`, `ORG`, `DATA`, `INCLUDE`, and `MACRO`
+- A `ProgramImage` path for initialized memory alongside the lowered instruction-list path
 - A fuller stack-machine surface including `ROT`, `MIN`, `MAX`, `CONS`, `DIV`, and `MOD`
+- Include-based assembly library files and memory-heavy example programs
 - A reproducible logical benchmark pass over operation and program metrics
 - Algebraic and program-level correctness checks in an automated test suite
 
@@ -65,13 +68,16 @@ vm = TernaryVM(prog).run()
 See [`examples/factorial_vm.py`](examples/factorial_vm.py) for a runnable VM example,
 [`examples/factorial.trine`](examples/factorial.trine) for raw assembly source,
 [`examples/factorial_asm.py`](examples/factorial_asm.py) for an assembly-driven runner,
-and [`examples/count_to_five.trine`](examples/count_to_five.trine) for a label-based example.
+[`examples/count_to_five.trine`](examples/count_to_five.trine) for a label-based example,
+and [`examples/memory_examples.py`](examples/memory_examples.py) for the current
+memory-heavy assembly programs in both lowered and image-backed modes.
 
 ## Architecture
 
 ```
 Programs          -> factorial, fibonacci, loops, branching, memory demos
-Assembler         -> line-oriented `.trine` text -> instruction list with labels
+Assembler         -> `.trine` text with labels, defs, data, includes, macros
+Program Images    -> instructions plus initial memory
 VM                -> stack machine, 31 opcodes, BR3
 Memory            -> LOAD, STORE, sparse default-zero word cells
 Primitive ALU     -> increment, decrement, negate, add
@@ -92,7 +98,9 @@ execute as primitive tape/FSM operations. `abs`, `sub`, `cmp`, `min`, `max`,
 composite helpers built either from those primitives or from direct host-side
 logic. `DIV` truncates toward zero and `MOD` returns the paired remainder whose
 sign follows the dividend. `LOAD` and `STORE` operate on sparse word-addressed
-VM memory with default-zero reads and write-zero-deletes semantics.
+VM memory with default-zero reads and write-zero-deletes semantics. The
+assembler now supports `DEF`, `INCLUDE`, `ORG`, `DATA`, and block macros, and
+can emit either a lowered instruction list or a `ProgramImage`.
 
 ## Why Ternary
 
@@ -106,15 +114,15 @@ Python ternary simulator is faster or more useful than binary implementations.
 
 ## Verification
 
-The test suite currently covers 280 cases across:
+The test suite currently covers 301 cases across:
 
 - Trit and tape primitives
 - Balanced ternary conversion
 - Unary and binary ALU behavior
 - Composite operations
-- Assembly parsing, label resolution, and execution
+- Assembly parsing, directives, include handling, macro expansion, label resolution, image semantics, and execution
 - Algebraic properties such as symmetry, involution, commutativity, and distributivity
-- VM programs including loops and `BR3`
+- VM programs including loops, `BR3`, and memory-heavy assembly examples
 
 The proofs establish semantic correctness of the implemented operations. They do
 not establish hardware efficiency or application-level advantage.
@@ -150,6 +158,9 @@ python3.12 -m venv .venv312
 # Run the label-based assembly example
 .venv312/bin/python examples/count_to_five_asm.py
 
+# Run the memory-heavy assembly examples in list and image modes
+.venv312/bin/python examples/memory_examples.py
+
 # Run the benchmark note generator
 .venv312/bin/python -m trine.benchmarks
 
@@ -171,9 +182,10 @@ Current strengths:
 - Clean layered package structure
 - Extensible operation injection model
 - Ternary-native `BR3`, `CMP`, `MIN`, `MAX`, `CONS`, `DIV`, `MOD`, `ROT`, and sparse word-addressed `LOAD`/`STORE`
-- Minimal executable assembler with label resolution for the documented ISA text
+- Executable assembler with labels, `DEF`, `ORG`, `DATA`, `INCLUDE`, block macros, and `ProgramImage` output
+- Include-based assembly stdlib and memory-heavy example programs
 - Logical benchmark note covering `vm_steps`, `alu_ticks`, and `composite_ops`
-- 280 passing tests
+- 301 passing tests
 - CI and module entrypoint support
 
 Current limits:

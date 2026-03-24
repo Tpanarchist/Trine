@@ -1,0 +1,32 @@
+INCLUDE "lib/runtime.trine"
+INCLUDE "lib/memory.trine"
+INCLUDE "lib/control.trine"
+
+DEF ARR_LEN 5
+
+numbers: DATA 4, -1, 3, 2, -2
+
+PUSH 0
+STORE_CELL RT_IDX
+PUSH 0
+STORE_CELL RT_ACC
+
+loop:
+LOAD_CELL RT_IDX
+PUSH ARR_LEN
+SUB
+JZ done
+
+LOAD_CELL RT_IDX
+PUSH numbers
+ADD
+LOAD
+ADD_TO_CELL RT_ACC
+
+INC_CELL RT_IDX
+JMP loop
+
+done:
+LOAD_CELL RT_ACC
+PRINT
+HALT

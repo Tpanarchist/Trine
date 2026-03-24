@@ -8,7 +8,15 @@ from .operations import (
     rule_increment, rule_decrement, rule_negate, rule_addition,
     shift_left, shift_right, sign,
 )
-from .assembler import AssemblerError, assemble, assemble_file, assemble_lines
+from .assembler import (
+    AssemblerError,
+    assemble,
+    assemble_image,
+    assemble_file,
+    assemble_file_image,
+    assemble_lines,
+    assemble_lines_image,
+)
 from .fsm import MiniFSM, MachineError
 from .model import TernaryMachineModel
 from .machine import (
@@ -23,7 +31,7 @@ from .machine import (
     ternary_mod,
     ternary_mul,
 )
-from .vm import TernaryVM, Instruction, Op, VMError
+from .vm import TernaryVM, Instruction, Op, ProgramImage, VMError
 
 __all__ = [
     "Trit", "TritLike", "coerce_trits",
@@ -32,7 +40,13 @@ __all__ = [
     "OpDescriptor", "OPERATIONS",
     "rule_increment", "rule_decrement", "rule_negate", "rule_addition",
     "shift_left", "shift_right", "sign",
-    "AssemblerError", "assemble", "assemble_file", "assemble_lines",
+    "AssemblerError",
+    "assemble",
+    "assemble_image",
+    "assemble_file",
+    "assemble_file_image",
+    "assemble_lines",
+    "assemble_lines_image",
     "MiniFSM", "MachineError",
     "TernaryMachineModel",
     "TernaryMachine",
@@ -45,7 +59,7 @@ __all__ = [
     "ternary_div",
     "ternary_mod",
     "ternary_mul",
-    "TernaryVM", "Instruction", "Op", "VMError",
+    "TernaryVM", "Instruction", "Op", "ProgramImage", "VMError",
 ]
 
 __version__ = "0.1.0"

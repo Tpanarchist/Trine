@@ -37,7 +37,7 @@ Trine is currently:
 - a specification aid for future HDL or lower-level implementations
 - a test oracle for checking ternary behavior against algebraic properties
 - a demonstration of a constraint-separated architecture with operation injection
-- a minimal executable assembler for the current line-oriented VM ISA text, including labels
+- an executable assembler for the current line-oriented VM ISA text, including labels, directives, includes, and macros
 
 Trine is not currently:
 
@@ -57,7 +57,8 @@ Trine is layered. Each layer depends only on the layer below it.
 
 ```
 Programs          -> factorial, fibonacci, loops, branching, memory demos
-Assembler         -> line-oriented `.trine` text -> instruction list with labels
+Assembler         -> `.trine` text with labels, defs, data, includes, macros
+Program Images    -> instructions plus initial memory
 VM                -> stack, PC, opcodes, BR3
 Memory            -> LOAD, STORE, sparse default-zero word cells
 Primitive ALU     -> increment, decrement, negate, add
@@ -74,7 +75,9 @@ primitive tape/FSM operations. `abs`, `sub`, `cmp`, `min`, `max`, `cons`,
 helpers built either from those primitives or from direct host-side logic.
 `DIV` truncates toward zero and `MOD` returns the paired remainder whose sign
 follows the dividend. `LOAD` and `STORE` operate on sparse word-addressed VM
-memory with default-zero reads and write-zero-deletes semantics.
+memory with default-zero reads and write-zero-deletes semantics. The assembler
+can emit either a lowered instruction list or a `ProgramImage` that restores
+initial memory on VM reset.
 
 ### Core Principles
 
@@ -104,13 +107,16 @@ structural property of the codebase, not a speculative future claim.
 - Composite helpers: abs, sign, shift-left, shift-right, subtraction, comparison, minimum, maximum, consensus, division, modulo, multiplication
 - Sparse word-addressed VM memory with `LOAD` / `STORE`
 - `TernaryVM` with 31 opcodes including `BR3`
-- Minimal assembler: line-oriented text with labels -> `Instruction` list
+- Assembler directives: `DEF`, `INCLUDE`, `ORG`, `DATA`, and block macros
+- `ProgramImage` execution path with initialized memory and reset restoration
+- Include-based assembly stdlib in `examples/lib/`
 - `python -m trine` entrypoint and example VM program
 - Runnable assembly example in `examples/factorial.trine`
 - Runnable label-based assembly example in `examples/count_to_five.trine`
+- Runnable memory-heavy assembly examples for array walking, linked-list traversal, and table-driven state machines
 - Logical benchmark note in `BENCHMARKS.md`
 - GitHub Actions CI running tests and a module smoke test
-- 280 pytest cases covering primitives, operations, algebraic properties, memory, assembly, labels, stack rotation, VM programs, and benchmark harness behavior
+- 301 pytest cases covering primitives, operations, algebraic properties, memory, assembler directives/macros/includes, stack rotation, VM programs, benchmark harness behavior, and memory-heavy examples
 - VM metrics: `alu_ticks` for primitive machine ticks and `composite_ops` for host-side/composed VM instructions
 - A small ISA / assembly-text note in `TRINE_ISA.md`
 
@@ -141,9 +147,9 @@ structural property of the codebase, not a speculative future claim.
 
 ## Near-Term Priorities
 
-1. Expand assembler ergonomics beyond labels: constants, data directives, and possibly macros.
-2. Expand memory-using example programs so the VM is exercised as a machine model, not only as an arithmetic demonstrator.
-3. Add a small standard-library layer in assembly once assembler ergonomics improve.
+1. Decide the subroutine model: convention over existing ops versus explicit `CALL` / `RET`.
+2. Expand the assembly stdlib and memory-heavy programs around that subroutine decision.
+3. Begin the minimal high-level language / compiler path once call semantics are stable.
 
 ---
 
@@ -157,7 +163,7 @@ actually validating the claims they are meant to test.
 This milestone established the software reference stack.
 
 - [x] Python package (`src/trine/`)
-- [x] 280 pytest cases
+- [x] 301 pytest cases
 - [x] Separated core library from CLI/demo code
 - [x] README and project specification
 - [x] `python -m trine` entrypoint
@@ -184,9 +190,10 @@ This milestone established the software reference stack.
 
 - [x] Trine assembly language
 - [x] Assembler: assembly text -> instruction list
+- [x] Assembler ergonomics: constants, includes, data directives, block macros, and `ProgramImage`
 - [ ] Minimal high-level language
 - [ ] Compiler pipeline: high-level -> assembly -> VM program
-- [ ] Standard library in assembly
+- [x] Standard library in assembly
 
 ### M3: FPGA Proof of Concept
 
