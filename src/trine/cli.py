@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 from .assembler import assemble_file
+from .compiler import compile_file_program
 from .formatting import format_trits, int_to_trits
 from .machine import (
     TernaryMachine,
@@ -236,6 +237,25 @@ def demo() -> None:
     print(
         f"  vm_steps={vm_fact_call.step_count}  alu_ticks={vm_fact_call.alu_ticks}  "
         f"composite_ops={vm_fact_call.composite_ops}"
+    )
+
+    # High-level compiled examples
+    print("\n  -- High-level source: factorial_high_level.tri --")
+    vm_high_factorial = TernaryVM(compile_file_program(examples_dir / "factorial_high_level.tri")).run()
+    for line in vm_high_factorial.output:
+        print(f"    -> {line}")
+    print(
+        f"  vm_steps={vm_high_factorial.step_count}  alu_ticks={vm_high_factorial.alu_ticks}  "
+        f"composite_ops={vm_high_factorial.composite_ops}"
+    )
+
+    print("\n  -- High-level source: sum_to_high_level.tri --")
+    vm_high_sum = TernaryVM(compile_file_program(examples_dir / "sum_to_high_level.tri")).run()
+    for line in vm_high_sum.output:
+        print(f"    -> {line}")
+    print(
+        f"  vm_steps={vm_high_sum.step_count}  alu_ticks={vm_high_sum.alu_ticks}  "
+        f"composite_ops={vm_high_sum.composite_ops}"
     )
 
     # Fibonacci

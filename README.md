@@ -4,8 +4,9 @@ Trine is a pure-Python reference implementation of balanced ternary computation.
 It models trits, a sparse tape, a constraint-separated ALU, a small
 stored-program VM with a ternary-native three-way branch, and a line-oriented
 assembler for the current VM ISA with constants, data directives, macros,
-includes, a `ProgramImage` path for initialized memory, and explicit
-subroutine control flow via `CALL` / `RET`.
+includes, a `ProgramImage` path for initialized memory, explicit subroutine
+control flow via `CALL` / `RET`, and a minimal high-level compiler that targets
+that assembly/VM stack.
 
 The project is real in the sense that it computes correct balanced ternary
 results and verifies algebraic properties of those operations. It is not native
@@ -26,6 +27,7 @@ Trine currently demonstrates:
 - A fuller stack-machine surface including `ROT`, `MIN`, `MAX`, `CONS`, `DIV`, and `MOD`
 - Explicit `CALL` / `RET` with a separate return stack in the VM
 - Include-based assembly library files for memory and frame management
+- A minimal high-level language and compiler pipeline targeting the current subroutine ABI
 - Memory-heavy and subroutine-focused assembly example programs
 - A reproducible logical benchmark pass over operation and program metrics
 - Algebraic and program-level correctness checks in an automated test suite
@@ -77,12 +79,16 @@ memory-heavy assembly programs in both lowered and image-backed modes,
 [`examples/call_leaf.trine`](examples/call_leaf.trine) and
 [`examples/factorial_call.trine`](examples/factorial_call.trine) for the current
 subroutine examples, and [`examples/subroutine_examples.py`](examples/subroutine_examples.py)
-for a list/image execution runner for those examples.
+for a list/image execution runner for those examples. High-level source examples
+live in [`examples/factorial_high_level.tri`](examples/factorial_high_level.tri)
+and [`examples/sum_to_high_level.tri`](examples/sum_to_high_level.tri), with a
+runner in [`examples/high_level_examples.py`](examples/high_level_examples.py).
 
 ## Architecture
 
 ```
 Programs          -> factorial, fibonacci, loops, branching, memory demos
+Compiler          -> minimal high-level language -> assembly text
 Assembler         -> `.trine` text with labels, defs, data, includes, macros
 Program Images    -> instructions plus initial memory
 VM                -> stack machine, 33 opcodes, BR3, CALL/RET
@@ -110,7 +116,9 @@ VM memory with default-zero reads and write-zero-deletes semantics. `CALL` and
 stack. The assembler supports `DEF`, `INCLUDE`, `ORG`, `DATA`, and block
 macros, can emit either a lowered instruction list or a `ProgramImage`, and
 the stdlib now layers a hybrid frame convention over `CALL` / `RET` with
-memory-backed locals in reserved negative address space.
+memory-backed locals in reserved negative address space. The high-level
+compiler emits self-contained assembly text against that same ABI, so the
+language path remains transparent and inspectable.
 
 ## Why Ternary
 
@@ -124,13 +132,14 @@ Python ternary simulator is faster or more useful than binary implementations.
 
 ## Verification
 
-The test suite currently covers 316 cases across:
+The test suite currently covers 338 cases across:
 
 - Trit and tape primitives
 - Balanced ternary conversion
 - Unary and binary ALU behavior
 - Composite operations
 - Assembly parsing, directives, include handling, macro expansion, label resolution, image semantics, and execution
+- High-level language parsing, compilation, execution, and error handling
 - Algebraic properties such as symmetry, involution, commutativity, and distributivity
 - VM programs including loops, `BR3`, `CALL` / `RET`, frame macros, and memory-heavy assembly examples
 
@@ -174,6 +183,18 @@ python3.12 -m venv .venv312
 # Run the subroutine examples in list and image modes
 .venv312/bin/python examples/subroutine_examples.py
 
+# Run the high-level language examples
+.venv312/bin/python examples/high_level_examples.py
+
+# Print compiled assembly for a high-level source file
+.venv312/bin/python -m trine.compiler examples/factorial_high_level.tri
+
+# Compile and run a high-level source file
+.venv312/bin/python -m trine.compiler examples/factorial_high_level.tri --run
+
+# Or via the installed script entrypoint
+.venv312/bin/trine-compile examples/factorial_high_level.tri --run
+
 # Run the benchmark note generator
 .venv312/bin/python -m trine.benchmarks
 
@@ -197,8 +218,9 @@ Current strengths:
 - Ternary-native `BR3`, explicit `CALL` / `RET`, `CMP`, `MIN`, `MAX`, `CONS`, `DIV`, `MOD`, `ROT`, and sparse word-addressed `LOAD`/`STORE`
 - Executable assembler with labels, `DEF`, `ORG`, `DATA`, `INCLUDE`, block macros, `CALL` / `RET`, and `ProgramImage` output
 - Include-based assembly stdlib with memory and frame macros plus memory-heavy and subroutine example programs
+- Minimal high-level language plus compiler pipeline to assembly and VM programs
 - Logical benchmark note covering `vm_steps`, `alu_ticks`, and `composite_ops`
-- 316 passing tests
+- 338 passing tests
 - CI and module entrypoint support
 
 Current limits:
@@ -208,11 +230,13 @@ Current limits:
 - Several VM arithmetic instructions are still composite helpers, not single primitive tape/FSM ops
 - The VM memory model is sparse host-side state, not a hardware-ready memory subsystem
 - Call frames are currently a stdlib convention over sparse memory, not dedicated VM opcodes or a hardware-ready stack-frame mechanism
+- The high-level language is intentionally small: no globals, strings, or richer data structures yet
 - The ISA is a Python-level interface, not a hardware-ready ternary encoding
 
 See [BENCHMARKS.md](BENCHMARKS.md) for the current benchmark note,
 [TRINE_SPEC.md](TRINE_SPEC.md) for the longer roadmap, and
-[TRINE_ISA.md](TRINE_ISA.md) for the current instruction and assembly-text note.
+[TRINE_ISA.md](TRINE_ISA.md) for the current instruction and assembly-text note,
+plus [TRINE_LANG.md](TRINE_LANG.md) for the current high-level language note.
 
 ## License
 

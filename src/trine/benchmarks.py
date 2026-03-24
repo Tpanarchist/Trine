@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Iterable, List, Sequence
 
 from .assembler import assemble_file
+from .compiler import compile_file_program
 from .vm import Instruction, Op, TernaryVM
 
 
@@ -189,6 +190,14 @@ def benchmark_programs() -> List[BenchmarkRow]:
         _run_case(
             "factorial_call_recursive",
             assemble_file(examples / "factorial_call.trine"),
+        ),
+        _run_case(
+            "factorial_high_level_compiled",
+            compile_file_program(examples / "factorial_high_level.tri"),
+        ),
+        _run_case(
+            "sum_to_high_level_compiled",
+            compile_file_program(examples / "sum_to_high_level.tri"),
         ),
         _run_case(
             "factorial_unrolled",

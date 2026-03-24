@@ -5,6 +5,8 @@ and the minimal assembly-text shape that maps onto it.
 
 It is a software reference, not a ternary hardware encoding.
 
+The current high-level compiler targets this ISA; see `TRINE_LANG.md`.
+
 ## Scope
 
 - Stack values are signed Python integers.

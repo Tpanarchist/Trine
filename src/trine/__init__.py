@@ -47,6 +47,13 @@ __all__ = [
     "assemble_file_image",
     "assemble_lines",
     "assemble_lines_image",
+    "CompileError",
+    "compile_source",
+    "compile_file",
+    "compile_program",
+    "compile_image",
+    "compile_file_program",
+    "compile_file_image",
     "MiniFSM", "MachineError",
     "TernaryMachineModel",
     "TernaryMachine",
@@ -63,3 +70,19 @@ __all__ = [
 ]
 
 __version__ = "0.1.0"
+
+
+def __getattr__(name: str):
+    if name in {
+        "CompileError",
+        "compile_source",
+        "compile_file",
+        "compile_program",
+        "compile_image",
+        "compile_file_program",
+        "compile_file_image",
+    }:
+        from . import compiler as _compiler
+
+        return getattr(_compiler, name)
+    raise AttributeError(f"module 'trine' has no attribute '{name}'")

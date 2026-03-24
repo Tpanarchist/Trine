@@ -57,6 +57,7 @@ Trine is layered. Each layer depends only on the layer below it.
 
 ```
 Programs          -> factorial, fibonacci, loops, branching, memory demos
+Compiler          -> minimal high-level language -> assembly text
 Assembler         -> `.trine` text with labels, defs, data, includes, macros
 Program Images    -> instructions plus initial memory
 VM                -> stack, return stack, PC, opcodes, BR3, CALL/RET
@@ -80,7 +81,9 @@ can emit either a lowered instruction list or a `ProgramImage` that restores
 initial memory on VM reset. `CALL` and `RET` are explicit composite
 control-flow operations backed by a separate VM return stack, and the current
 assembly stdlib layers a hybrid calling convention over them with
-memory-backed locals in reserved negative address space.
+memory-backed locals in reserved negative address space. A minimal high-level
+compiler now targets that same ABI and emits self-contained assembly text,
+keeping the full pipeline inspectable from source language to VM execution.
 
 ### Core Principles
 
@@ -114,14 +117,16 @@ structural property of the codebase, not a speculative future claim.
 - `ProgramImage` execution path with initialized memory and reset restoration
 - Include-based assembly stdlib in `examples/lib/`
 - Standard frame macros: `INIT_FRAMES`, `ENTER`, `LEAVE`, `LOCAL_LOAD`, `LOCAL_STORE`
+- Minimal high-level language and compiler module
 - `python -m trine` entrypoint and example VM program
 - Runnable assembly example in `examples/factorial.trine`
 - Runnable label-based assembly example in `examples/count_to_five.trine`
 - Runnable memory-heavy assembly examples for array walking, linked-list traversal, and table-driven state machines
 - Runnable subroutine examples for leaf calls and recursion
+- Runnable compiled examples for recursion and loop-based locals
 - Logical benchmark note in `BENCHMARKS.md`
 - GitHub Actions CI running tests and a module smoke test
-- 316 pytest cases covering primitives, operations, algebraic properties, memory, assembler directives/macros/includes, stack rotation, VM programs, benchmark harness behavior, subroutine control flow, and memory-heavy examples
+- 338 pytest cases covering primitives, operations, algebraic properties, memory, assembler directives/macros/includes, stack rotation, VM programs, benchmark harness behavior, subroutine control flow, compiler behavior, and memory-heavy examples
 - VM metrics: `alu_ticks` for primitive machine ticks and `composite_ops` for host-side/composed VM instructions
 - A small ISA / assembly-text note in `TRINE_ISA.md`
 
@@ -147,15 +152,16 @@ structural property of the codebase, not a speculative future claim.
 - The VM memory model is sparse host-side word storage, not a hardware-ready memory subsystem.
 - The ISA is still a Python object interface rather than a ternary encoding.
 - Call frames are currently a stdlib convention over sparse memory, not dedicated frame opcodes or a hardware-ready frame subsystem.
+- The high-level language is intentionally narrow and does not yet include globals, strings, or richer data structures.
 - The current control system relies on Python constructs that would need explicit HDL translation.
 
 ---
 
 ## Near-Term Priorities
 
-1. Begin the minimal high-level language / compiler path against the now-stable `CALL` / `RET` plus frame-macro convention.
-2. Expand the assembly stdlib from memory/frame helpers toward more reusable program structure.
-3. Continue validating the cost model with larger memory-heavy and subroutine-heavy programs.
+1. Expand the high-level language beyond the current minimal core: globals/data, richer control, and better ergonomics.
+2. Grow the assembly stdlib from memory/frame helpers toward more reusable program structure.
+3. Continue validating the cost model with larger memory-heavy, subroutine-heavy, and compiler-generated programs.
 
 ---
 
@@ -190,7 +196,7 @@ This milestone established the software reference stack.
 - [x] `ROT` instruction
 - [x] Benchmarks focused on operation counts and ALU ticks, not marketing claims
 
-### M2: Compiler + Assembler
+### M2: Compiler + Assembler - complete
 
 **Goal**: Make the VM easier to target while keeping its role as a reference machine.
 
@@ -199,8 +205,8 @@ This milestone established the software reference stack.
 - [x] Assembler ergonomics: constants, includes, data directives, block macros, and `ProgramImage`
 - [x] Explicit subroutine ISA support with `CALL` / `RET`
 - [x] Standard frame convention via assembly stdlib macros
-- [ ] Minimal high-level language
-- [ ] Compiler pipeline: high-level -> assembly -> VM program
+- [x] Minimal high-level language
+- [x] Compiler pipeline: high-level -> assembly -> VM program
 - [x] Standard library in assembly
 
 ### M3: FPGA Proof of Concept

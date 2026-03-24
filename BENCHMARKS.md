@@ -34,6 +34,8 @@ not be used to make runtime or hardware-efficiency claims.
 | call_ret_round_trip | - | 3 | 0 | 2 |
 | call_leaf | 9 | 80 | 37 | 8 |
 | factorial_call_recursive | 120 | 414 | 226 | 51 |
+| factorial_high_level_compiled | 120 | 490 | 268 | 66 |
+| sum_to_high_level_compiled | 15 | 336 | 243 | 53 |
 | factorial_unrolled | 120 | 11 | 38 | 4 |
 | factorial_loop | 720 | 57 | 76 | 6 |
 | count_to_five_asm | 1, 2, 3, 4, 5 | 41 | 38 | 5 |
