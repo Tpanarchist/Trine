@@ -19,11 +19,12 @@ _NO_OPERAND_OPS = {
     Op.INC, Op.DEC, Op.NEG, Op.ABS, Op.SHL, Op.SHR, Op.SGN,
     Op.ADD, Op.SUB, Op.CMP, Op.MIN, Op.MAX, Op.CONS, Op.DIV, Op.MOD, Op.MUL,
     Op.LOAD, Op.STORE,
+    Op.RET,
     Op.PRINT, Op.HALT,
 }
 
 _VALUE_OPERAND_OPS = {Op.PUSH}
-_TARGET_OPERAND_OPS = {Op.JMP, Op.JN, Op.JZ, Op.JP}
+_TARGET_OPERAND_OPS = {Op.JMP, Op.CALL, Op.JN, Op.JZ, Op.JP}
 _DIRECTIVES = {"DEF", "INCLUDE", "ORG", "DATA", "MACRO", "ENDMACRO"}
 _ALL_OPS = _NO_OPERAND_OPS | _VALUE_OPERAND_OPS | _TARGET_OPERAND_OPS | {Op.BR3}
 _LABEL_RE = re.compile(r"^(?P<label>[A-Za-z_][A-Za-z0-9_]*)\s*:(?P<rest>.*)$")

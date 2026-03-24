@@ -9,11 +9,13 @@ It is a software reference, not a ternary hardware encoding.
 
 - Stack values are signed Python integers.
 - Memory is sparse, word-addressed, and default-zero.
+- The VM has a separate return stack for `CALL` / `RET`.
 - `PRINT` renders integers alongside balanced ternary formatting.
 - Jumps may target raw numeric instruction indexes or labels.
 - The assembler can emit either a lowered instruction list or a `ProgramImage` with initialized memory.
 - Primitive tape/FSM-executed arithmetic is limited to `INC`, `DEC`, `NEG`, and `ADD`.
 - `ABS`, `SUB`, `CMP`, `MIN`, `MAX`, `CONS`, `DIV`, `MOD`, `MUL`, `SHL`, `SHR`, and `SGN` are composite helpers over the primitive substrate or host-side logic.
+- The standard subroutine convention is hybrid: arguments and the optional single return value stay on the operand stack, while locals live in reserved negative-address memory frames managed by stdlib macros.
 
 ## Assembly Text
 
@@ -51,6 +53,7 @@ Rules:
 - `assemble*` lowers `DATA` to a deterministic startup prologue of `PUSH` / `STORE` instructions.
 - `assemble_image*` preserves the code stream and returns a `ProgramImage` with `initial_memory`.
 - Code labels resolve to instruction indexes; data labels resolve to memory addresses.
+- `CALL` targets behave like jump targets: raw numeric PCs or labels.
 
 Example:
 
@@ -96,6 +99,7 @@ HALT
 
 - Stack: LIFO list of signed integers
 - Memory: sparse map from integer address to integer value
+- Return stack: LIFO list of return PCs used only by `CALL` / `RET`
 - Program counter: zero-based instruction index
 - Output: list of formatted strings written by `PRINT`
 
@@ -104,6 +108,7 @@ Memory rules:
 - Reading an unwritten address yields `0`.
 - Writing `0` deletes the cell from storage.
 - Addresses may be any signed integer.
+- The assembly stdlib reserves negative addresses `-1..-31` for runtime scratch and frame bookkeeping; default user `DATA` allocation remains non-negative.
 
 ## Instruction Set
 
@@ -156,10 +161,12 @@ Memory rules:
 | Opcode | Operand | Stack Effect | Notes |
 | --- | --- | --- | --- |
 | `JMP` | pc | `[] -> []` | Unconditional jump |
+| `CALL` | pc | `[] -> []` | Pushes `pc + 1` onto the return stack and jumps |
 | `JN` | pc | `[a] -> []` | Jump if `a < 0` |
 | `JZ` | pc | `[a] -> []` | Jump if `a == 0` |
 | `JP` | pc | `[a] -> []` | Jump if `a > 0` |
 | `BR3` | `neg,zero,pos` | `[a] -> []` | Three-way branch on sign |
+| `RET` | none | `[] -> []` | Pops the return stack and jumps back; raises on underflow |
 
 ### I/O
 
@@ -168,8 +175,12 @@ Memory rules:
 | `PRINT` | none | `[a] -> []` | Appends formatted output |
 | `HALT` | none | `[] -> []` | Stops execution |
 
-## Notes for Future Assembler Work
+## Subroutine Convention
 
-- `BR3` should preserve `neg,zero,pos` target order.
+- `CALL` is direct-only in the current ISA; there is no indirect call opcode yet.
+- Callers push arguments left-to-right so the last argument is on top at callee entry.
+- The documented convention allows zero or one return value on the operand stack.
+- The stdlib frame macros are `INIT_FRAMES`, `ENTER`, `LEAVE`, `LOCAL_LOAD`, and `LOCAL_STORE`.
+- `RT_FP = -8`, `RT_FRAME_TOP = -9`, and `RT_FRAME_BASE = -32` define the standard frame-bookkeeping cells.
+- `FP` points to local slot `0`; local slot `i` lives at `FP - i`; the saved parent frame pointer lives at `FP - nlocals`.
 - The current text form is still intentionally small; there are no strings, richer I/O directives, or linker-style passes yet.
-- The next unresolved assembler question is subroutine support: convention over existing ops versus explicit `CALL` / `RET`.

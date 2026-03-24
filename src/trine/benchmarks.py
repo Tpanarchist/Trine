@@ -147,6 +147,14 @@ def _powers_of_two_program() -> List[Instruction]:
     return program
 
 
+def _call_ret_round_trip_program() -> List[Instruction]:
+    return [
+        Instruction(Op.CALL, 2),
+        Instruction(Op.HALT),
+        Instruction(Op.RET),
+    ]
+
+
 def benchmark_operations() -> List[BenchmarkRow]:
     """Representative per-operation VM metrics across the current ISA surface."""
     return [
@@ -173,6 +181,15 @@ def benchmark_programs() -> List[BenchmarkRow]:
     """Representative whole-program metrics."""
     examples = _examples_dir()
     return [
+        _run_case("call_ret_round_trip", _call_ret_round_trip_program()),
+        _run_case(
+            "call_leaf",
+            assemble_file(examples / "call_leaf.trine"),
+        ),
+        _run_case(
+            "factorial_call_recursive",
+            assemble_file(examples / "factorial_call.trine"),
+        ),
         _run_case(
             "factorial_unrolled",
             assemble_file(examples / "factorial.trine"),
@@ -246,6 +263,8 @@ def render_benchmark_report() -> str:
     sections = [
         "# Trine Benchmark Note",
         "",
+        "Generated from `python -m trine.benchmarks`.",
+        "",
         "These are deterministic machine-model metrics from the current Python",
         "reference implementation. They are not wall-clock benchmarks and should",
         "not be used to make runtime or hardware-efficiency claims.",
@@ -269,6 +288,9 @@ def render_benchmark_report() -> str:
                 for row in program_rows
             ),
         ),
+        "",
+        "`CALL` and `RET` are composite control-flow instructions. They affect",
+        "`composite_ops` but do not contribute to `alu_ticks` directly.",
         "",
         "## Division Cost Growth",
         "",

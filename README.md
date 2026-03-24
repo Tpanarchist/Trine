@@ -4,7 +4,8 @@ Trine is a pure-Python reference implementation of balanced ternary computation.
 It models trits, a sparse tape, a constraint-separated ALU, a small
 stored-program VM with a ternary-native three-way branch, and a line-oriented
 assembler for the current VM ISA with constants, data directives, macros,
-includes, and a `ProgramImage` path for initialized memory.
+includes, a `ProgramImage` path for initialized memory, and explicit
+subroutine control flow via `CALL` / `RET`.
 
 The project is real in the sense that it computes correct balanced ternary
 results and verifies algebraic properties of those operations. It is not native
@@ -23,7 +24,9 @@ Trine currently demonstrates:
 - A runnable assembly-text path from `.trine` source to VM program, including labels, `DEF`, `ORG`, `DATA`, `INCLUDE`, and `MACRO`
 - A `ProgramImage` path for initialized memory alongside the lowered instruction-list path
 - A fuller stack-machine surface including `ROT`, `MIN`, `MAX`, `CONS`, `DIV`, and `MOD`
-- Include-based assembly library files and memory-heavy example programs
+- Explicit `CALL` / `RET` with a separate return stack in the VM
+- Include-based assembly library files for memory and frame management
+- Memory-heavy and subroutine-focused assembly example programs
 - A reproducible logical benchmark pass over operation and program metrics
 - Algebraic and program-level correctness checks in an automated test suite
 
@@ -69,8 +72,12 @@ See [`examples/factorial_vm.py`](examples/factorial_vm.py) for a runnable VM exa
 [`examples/factorial.trine`](examples/factorial.trine) for raw assembly source,
 [`examples/factorial_asm.py`](examples/factorial_asm.py) for an assembly-driven runner,
 [`examples/count_to_five.trine`](examples/count_to_five.trine) for a label-based example,
-and [`examples/memory_examples.py`](examples/memory_examples.py) for the current
-memory-heavy assembly programs in both lowered and image-backed modes.
+[`examples/memory_examples.py`](examples/memory_examples.py) for the current
+memory-heavy assembly programs in both lowered and image-backed modes,
+[`examples/call_leaf.trine`](examples/call_leaf.trine) and
+[`examples/factorial_call.trine`](examples/factorial_call.trine) for the current
+subroutine examples, and [`examples/subroutine_examples.py`](examples/subroutine_examples.py)
+for a list/image execution runner for those examples.
 
 ## Architecture
 
@@ -78,7 +85,7 @@ memory-heavy assembly programs in both lowered and image-backed modes.
 Programs          -> factorial, fibonacci, loops, branching, memory demos
 Assembler         -> `.trine` text with labels, defs, data, includes, macros
 Program Images    -> instructions plus initial memory
-VM                -> stack machine, 31 opcodes, BR3
+VM                -> stack machine, 33 opcodes, BR3, CALL/RET
 Memory            -> LOAD, STORE, sparse default-zero word cells
 Primitive ALU     -> increment, decrement, negate, add
 Composite helpers -> abs, sub, cmp, min, max, cons, div, mod, mul, shift, sign
@@ -98,9 +105,12 @@ execute as primitive tape/FSM operations. `abs`, `sub`, `cmp`, `min`, `max`,
 composite helpers built either from those primitives or from direct host-side
 logic. `DIV` truncates toward zero and `MOD` returns the paired remainder whose
 sign follows the dividend. `LOAD` and `STORE` operate on sparse word-addressed
-VM memory with default-zero reads and write-zero-deletes semantics. The
-assembler now supports `DEF`, `INCLUDE`, `ORG`, `DATA`, and block macros, and
-can emit either a lowered instruction list or a `ProgramImage`.
+VM memory with default-zero reads and write-zero-deletes semantics. `CALL` and
+`RET` are explicit composite control-flow operations over a separate VM return
+stack. The assembler supports `DEF`, `INCLUDE`, `ORG`, `DATA`, and block
+macros, can emit either a lowered instruction list or a `ProgramImage`, and
+the stdlib now layers a hybrid frame convention over `CALL` / `RET` with
+memory-backed locals in reserved negative address space.
 
 ## Why Ternary
 
@@ -114,7 +124,7 @@ Python ternary simulator is faster or more useful than binary implementations.
 
 ## Verification
 
-The test suite currently covers 301 cases across:
+The test suite currently covers 316 cases across:
 
 - Trit and tape primitives
 - Balanced ternary conversion
@@ -122,7 +132,7 @@ The test suite currently covers 301 cases across:
 - Composite operations
 - Assembly parsing, directives, include handling, macro expansion, label resolution, image semantics, and execution
 - Algebraic properties such as symmetry, involution, commutativity, and distributivity
-- VM programs including loops, `BR3`, and memory-heavy assembly examples
+- VM programs including loops, `BR3`, `CALL` / `RET`, frame macros, and memory-heavy assembly examples
 
 The proofs establish semantic correctness of the implemented operations. They do
 not establish hardware efficiency or application-level advantage.
@@ -161,6 +171,9 @@ python3.12 -m venv .venv312
 # Run the memory-heavy assembly examples in list and image modes
 .venv312/bin/python examples/memory_examples.py
 
+# Run the subroutine examples in list and image modes
+.venv312/bin/python examples/subroutine_examples.py
+
 # Run the benchmark note generator
 .venv312/bin/python -m trine.benchmarks
 
@@ -181,11 +194,11 @@ Current strengths:
 
 - Clean layered package structure
 - Extensible operation injection model
-- Ternary-native `BR3`, `CMP`, `MIN`, `MAX`, `CONS`, `DIV`, `MOD`, `ROT`, and sparse word-addressed `LOAD`/`STORE`
-- Executable assembler with labels, `DEF`, `ORG`, `DATA`, `INCLUDE`, block macros, and `ProgramImage` output
-- Include-based assembly stdlib and memory-heavy example programs
+- Ternary-native `BR3`, explicit `CALL` / `RET`, `CMP`, `MIN`, `MAX`, `CONS`, `DIV`, `MOD`, `ROT`, and sparse word-addressed `LOAD`/`STORE`
+- Executable assembler with labels, `DEF`, `ORG`, `DATA`, `INCLUDE`, block macros, `CALL` / `RET`, and `ProgramImage` output
+- Include-based assembly stdlib with memory and frame macros plus memory-heavy and subroutine example programs
 - Logical benchmark note covering `vm_steps`, `alu_ticks`, and `composite_ops`
-- 301 passing tests
+- 316 passing tests
 - CI and module entrypoint support
 
 Current limits:
@@ -194,6 +207,7 @@ Current limits:
 - Performance is not competitive with native numeric libraries or hardware
 - Several VM arithmetic instructions are still composite helpers, not single primitive tape/FSM ops
 - The VM memory model is sparse host-side state, not a hardware-ready memory subsystem
+- Call frames are currently a stdlib convention over sparse memory, not dedicated VM opcodes or a hardware-ready stack-frame mechanism
 - The ISA is a Python-level interface, not a hardware-ready ternary encoding
 
 See [BENCHMARKS.md](BENCHMARKS.md) for the current benchmark note,

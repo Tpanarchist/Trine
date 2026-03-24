@@ -1,0 +1,28 @@
+INCLUDE "lib/runtime.trine"
+INCLUDE "lib/memory.trine"
+INCLUDE "lib/frames.trine"
+
+INIT_FRAMES
+
+PUSH 5
+CALL fact
+PRINT
+HALT
+
+fact:
+ENTER 1
+LOCAL_STORE 0
+LOCAL_LOAD 0
+JP recurse
+PUSH 1
+LEAVE 1
+RET
+
+recurse:
+LOCAL_LOAD 0
+LOCAL_LOAD 0
+DEC
+CALL fact
+MUL
+LEAVE 1
+RET

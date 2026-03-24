@@ -31,12 +31,18 @@ not be used to make runtime or hardware-efficiency claims.
 
 | Case | Result | VM Steps | ALU Ticks | Composite Ops |
 | --- | --- | --- | --- | --- |
+| call_ret_round_trip | - | 3 | 0 | 2 |
+| call_leaf | 9 | 80 | 37 | 8 |
+| factorial_call_recursive | 120 | 414 | 226 | 51 |
 | factorial_unrolled | 120 | 11 | 38 | 4 |
 | factorial_loop | 720 | 57 | 76 | 6 |
 | count_to_five_asm | 1, 2, 3, 4, 5 | 41 | 38 | 5 |
 | memory_round_trip | 13 | 7 | 0 | 0 |
 | fibonacci_8 | 0, 1, 1, 2, 3, 5, 8, 13 | 40 | 18 | 0 |
 | powers_of_two_8 | 1, 2, 4, 8, 16, 32, 64, 128 | 32 | 26 | 0 |
+
+`CALL` and `RET` are composite control-flow instructions. They affect
+`composite_ops` but do not contribute to `alu_ticks` directly.
 
 ## Division Cost Growth
 

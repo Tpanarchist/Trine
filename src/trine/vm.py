@@ -4,8 +4,9 @@ Harvard architecture: separate program (instruction list) and data (stack).
 Primitive ALU work dispatches to TernaryMachine. Composite VM instructions
 either compose primitive machine runs or use direct host-side helpers and are
 tracked separately from primitive ALU ticks. The VM also provides sparse
-default-zero word-addressed memory plus a ternary-native compare result for
-branching. Three-way branching (BR3) is a primitive instruction.
+default-zero word-addressed memory, a separate return stack for subroutines,
+and a ternary-native compare result for branching. Three-way branching (BR3)
+is a primitive instruction.
 """
 
 from __future__ import annotations
@@ -63,10 +64,12 @@ class Op:
     STORE = "STORE"
     # Control flow
     JMP   = "JMP"
+    CALL  = "CALL"
     JN    = "JN"
     JZ    = "JZ"
     JP    = "JP"
     BR3   = "BR3"
+    RET   = "RET"
     # I/O
     PRINT = "PRINT"
     HALT  = "HALT"
@@ -119,6 +122,7 @@ class TernaryVM:
         self.trace: List[str] = []
         self.output: List[str] = []
         self.memory: Dict[int, int] = {}
+        self.return_stack: List[int] = []
         self.step_count: int = 0
         self.alu_ticks: int = 0
         self.composite_ops: int = 0
@@ -132,6 +136,7 @@ class TernaryVM:
         self.trace = []
         self.output = []
         self.memory = dict(self._initial_memory)
+        self.return_stack = []
         self.step_count = 0
         self.alu_ticks = 0
         self.composite_ops = 0
@@ -300,6 +305,10 @@ class TernaryVM:
         # Control flow
         elif op == Op.JMP:
             next_pc = instr.operand
+        elif op == Op.CALL:
+            self.composite_ops += 1
+            self.return_stack.append(self.pc + 1)
+            next_pc = instr.operand
         elif op == Op.JN:
             if self._pop() < 0:
                 next_pc = instr.operand
@@ -313,6 +322,11 @@ class TernaryVM:
             val = self._pop()
             neg_t, zero_t, pos_t = instr.operand
             next_pc = neg_t if val < 0 else (zero_t if val == 0 else pos_t)
+        elif op == Op.RET:
+            self.composite_ops += 1
+            if not self.return_stack:
+                raise VMError(f"return stack underflow at pc={self.pc}")
+            next_pc = self.return_stack.pop()
 
         # I/O
         elif op == Op.PRINT:

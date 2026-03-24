@@ -1,0 +1,21 @@
+INCLUDE "lib/runtime.trine"
+INCLUDE "lib/memory.trine"
+INCLUDE "lib/frames.trine"
+
+INIT_FRAMES
+
+PUSH 13
+PUSH -4
+CALL add_two
+PRINT
+HALT
+
+add_two:
+ENTER 2
+LOCAL_STORE 0
+LOCAL_STORE 1
+LOCAL_LOAD 1
+LOCAL_LOAD 0
+ADD
+LEAVE 2
+RET

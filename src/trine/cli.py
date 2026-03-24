@@ -34,6 +34,7 @@ def _run2(a: int, b: int) -> TernaryMachine:
 
 def demo() -> None:
     sep = "-" * 58
+    examples_dir = Path(__file__).resolve().parents[2] / "examples"
 
     print("\n  -- INCREMENT --")
     for v, e in [(-5, -4), (-1, 0), (0, 1), (1, 2), (4, 5), (13, 14), (40, 41)]:
@@ -198,7 +199,7 @@ def demo() -> None:
 
     # Assembly example
     print("\n  -- Assembly: factorial.trine --")
-    asm_program = assemble_file(Path(__file__).resolve().parents[2] / "examples" / "factorial.trine")
+    asm_program = assemble_file(examples_dir / "factorial.trine")
     vm_asm = TernaryVM(asm_program).run()
     for line in vm_asm.output:
         print(f"    -> {line}")
@@ -209,13 +210,32 @@ def demo() -> None:
 
     # Label-based assembly example
     print("\n  -- Assembly with labels: count_to_five.trine --")
-    asm_loop = assemble_file(Path(__file__).resolve().parents[2] / "examples" / "count_to_five.trine")
+    asm_loop = assemble_file(examples_dir / "count_to_five.trine")
     vm_loop = TernaryVM(asm_loop).run()
     for line in vm_loop.output:
         print(f"    -> {line}")
     print(
         f"  vm_steps={vm_loop.step_count}  alu_ticks={vm_loop.alu_ticks}  "
         f"composite_ops={vm_loop.composite_ops}"
+    )
+
+    # Subroutine examples
+    print("\n  -- Subroutines: call_leaf.trine --")
+    vm_call_leaf = TernaryVM(assemble_file(examples_dir / "call_leaf.trine")).run()
+    for line in vm_call_leaf.output:
+        print(f"    -> {line}")
+    print(
+        f"  vm_steps={vm_call_leaf.step_count}  alu_ticks={vm_call_leaf.alu_ticks}  "
+        f"composite_ops={vm_call_leaf.composite_ops}"
+    )
+
+    print("\n  -- Subroutines: factorial_call.trine --")
+    vm_fact_call = TernaryVM(assemble_file(examples_dir / "factorial_call.trine")).run()
+    for line in vm_fact_call.output:
+        print(f"    -> {line}")
+    print(
+        f"  vm_steps={vm_fact_call.step_count}  alu_ticks={vm_fact_call.alu_ticks}  "
+        f"composite_ops={vm_fact_call.composite_ops}"
     )
 
     # Fibonacci

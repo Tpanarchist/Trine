@@ -59,7 +59,7 @@ Trine is layered. Each layer depends only on the layer below it.
 Programs          -> factorial, fibonacci, loops, branching, memory demos
 Assembler         -> `.trine` text with labels, defs, data, includes, macros
 Program Images    -> instructions plus initial memory
-VM                -> stack, PC, opcodes, BR3
+VM                -> stack, return stack, PC, opcodes, BR3, CALL/RET
 Memory            -> LOAD, STORE, sparse default-zero word cells
 Primitive ALU     -> increment, decrement, negate, add
 Composite helpers -> abs, sub, cmp, min, max, cons, div, mod, mul, shifts, sign
@@ -77,7 +77,10 @@ helpers built either from those primitives or from direct host-side logic.
 follows the dividend. `LOAD` and `STORE` operate on sparse word-addressed VM
 memory with default-zero reads and write-zero-deletes semantics. The assembler
 can emit either a lowered instruction list or a `ProgramImage` that restores
-initial memory on VM reset.
+initial memory on VM reset. `CALL` and `RET` are explicit composite
+control-flow operations backed by a separate VM return stack, and the current
+assembly stdlib layers a hybrid calling convention over them with
+memory-backed locals in reserved negative address space.
 
 ### Core Principles
 
@@ -106,17 +109,19 @@ structural property of the codebase, not a speculative future claim.
 - Stack rotation with `ROT`
 - Composite helpers: abs, sign, shift-left, shift-right, subtraction, comparison, minimum, maximum, consensus, division, modulo, multiplication
 - Sparse word-addressed VM memory with `LOAD` / `STORE`
-- `TernaryVM` with 31 opcodes including `BR3`
+- `TernaryVM` with 33 opcodes including `BR3`, `CALL`, and `RET`
 - Assembler directives: `DEF`, `INCLUDE`, `ORG`, `DATA`, and block macros
 - `ProgramImage` execution path with initialized memory and reset restoration
 - Include-based assembly stdlib in `examples/lib/`
+- Standard frame macros: `INIT_FRAMES`, `ENTER`, `LEAVE`, `LOCAL_LOAD`, `LOCAL_STORE`
 - `python -m trine` entrypoint and example VM program
 - Runnable assembly example in `examples/factorial.trine`
 - Runnable label-based assembly example in `examples/count_to_five.trine`
 - Runnable memory-heavy assembly examples for array walking, linked-list traversal, and table-driven state machines
+- Runnable subroutine examples for leaf calls and recursion
 - Logical benchmark note in `BENCHMARKS.md`
 - GitHub Actions CI running tests and a module smoke test
-- 301 pytest cases covering primitives, operations, algebraic properties, memory, assembler directives/macros/includes, stack rotation, VM programs, benchmark harness behavior, and memory-heavy examples
+- 316 pytest cases covering primitives, operations, algebraic properties, memory, assembler directives/macros/includes, stack rotation, VM programs, benchmark harness behavior, subroutine control flow, and memory-heavy examples
 - VM metrics: `alu_ticks` for primitive machine ticks and `composite_ops` for host-side/composed VM instructions
 - A small ISA / assembly-text note in `TRINE_ISA.md`
 
@@ -141,15 +146,16 @@ structural property of the codebase, not a speculative future claim.
 - Several VM instructions are composite host-side helpers rather than single primitive tape/FSM operations.
 - The VM memory model is sparse host-side word storage, not a hardware-ready memory subsystem.
 - The ISA is still a Python object interface rather than a ternary encoding.
+- Call frames are currently a stdlib convention over sparse memory, not dedicated frame opcodes or a hardware-ready frame subsystem.
 - The current control system relies on Python constructs that would need explicit HDL translation.
 
 ---
 
 ## Near-Term Priorities
 
-1. Decide the subroutine model: convention over existing ops versus explicit `CALL` / `RET`.
-2. Expand the assembly stdlib and memory-heavy programs around that subroutine decision.
-3. Begin the minimal high-level language / compiler path once call semantics are stable.
+1. Begin the minimal high-level language / compiler path against the now-stable `CALL` / `RET` plus frame-macro convention.
+2. Expand the assembly stdlib from memory/frame helpers toward more reusable program structure.
+3. Continue validating the cost model with larger memory-heavy and subroutine-heavy programs.
 
 ---
 
@@ -191,6 +197,8 @@ This milestone established the software reference stack.
 - [x] Trine assembly language
 - [x] Assembler: assembly text -> instruction list
 - [x] Assembler ergonomics: constants, includes, data directives, block macros, and `ProgramImage`
+- [x] Explicit subroutine ISA support with `CALL` / `RET`
+- [x] Standard frame convention via assembly stdlib macros
 - [ ] Minimal high-level language
 - [ ] Compiler pipeline: high-level -> assembly -> VM program
 - [x] Standard library in assembly
@@ -334,7 +342,7 @@ leadership, performance leadership, and product viability are not yet proven.
 - **Performance risk**: Python overhead dominates execution cost. The current VM is not suitable for serious ML workloads.
 - **Translation risk**: the control path must be re-expressed in HDL; Python dictionaries, callbacks, and dynamic binding do not carry over directly.
 - **ISA maturity risk**: current instructions are Python-level objects, not ternary-encoded hardware instructions.
-- **Memory-model gap**: sparse word-addressed memory exists now, but richer data structures, call frames, and hardware mapping are still unresolved.
+- **Memory-model gap**: sparse word-addressed memory exists now, but richer data structures and hardware mapping are still unresolved. Current call frames are a software convention over that memory model.
 - **Training-risk**: ternary-native update rules may fail to converge or may underperform badly.
 - **Hardware-risk**: FPGA implementations may not show efficiency gains even if semantic correctness is preserved.
 - **Timing risk**: larger organizations, including Huawei or other hardware teams, may close the software gap quickly once they prioritize it.
